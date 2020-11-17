@@ -1,1 +1,4 @@
 .vscode
+pi-rfid-virtual-env
+.env
+__pycache__
