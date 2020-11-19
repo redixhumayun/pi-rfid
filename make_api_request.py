@@ -9,7 +9,6 @@ class MakeApiRequest():
 
   def __init__(self, url: str):
     self.url = url
-    self.headers = {'version': '3.0'}
 
   @staticmethod
   def add_authentication_header(token: str) -> None:
