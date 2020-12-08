@@ -143,7 +143,7 @@ def gps_proc(x,queue,rq):
 
 def rand_num(x,queue,rq):
     sstop=0
-    trq=-1;
+    trq=-1
     if x == 0:
         trq= rq1
     elif x == 1:
@@ -227,8 +227,8 @@ def gui_bk_proc(x,queue,rq):
            width=canvas_width, 
            height=canvas_height)
     canvas.pack(side=tk.TOP)
-    bk = tk.PhotoImage(file="rfid-bk.png")
-    bkimg=canvas.create_image(0,0, anchor=tk.NW, image=bk)
+    # bk = tk.PhotoImage(file="rfid-bk.png")
+    # bkimg=canvas.create_image(0,0, anchor=tk.NW, image=bk)
     master.update()
     b_scan=tk.Button(master,text = "Scan",command=scan)
     b_scan.pack(side=tk.RIGHT)
@@ -251,18 +251,18 @@ if __name__ == "__main__":
 
     processes=[]
 
-    a=Process(target=rand_num, args=(0,wq,rq1)) 
-    b=Process(target=rand_num, args=(1,wq,rq2)) 
-    c=Process(target=gps_proc, args=(2,wq,gpsq)) 
-    d=Process(target=tagreader_proc,args=(3,wq,tagq))
+    # a=Process(target=rand_num, args=(0,wq,rq1)) 
+    # b=Process(target=rand_num, args=(1,wq,rq2)) 
+    # c=Process(target=gps_proc, args=(2,wq,gpsq)) 
+    # d=Process(target=tagreader_proc,args=(3,wq,tagq))
     e=Process(target=gui_bk_proc,args=(4,wq,guibq))
-    f=Process(target=upload_proc,args=(5,wq,uploadq))
-    processes.append(a)
-    processes.append(b)
-    processes.append(c)
-    processes.append(d)
+    # f=Process(target=upload_proc,args=(5,wq,uploadq))
+    # processes.append(a)
+    # processes.append(b)
+    # processes.append(c)
+    # processes.append(d)
     processes.append(e)
-    processes.append(f)
+    # processes.append(f)
 
 
     for p in processes:
