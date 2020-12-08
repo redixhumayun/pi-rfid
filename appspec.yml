@@ -7,16 +7,16 @@ hooks:
   ApplicationStop:
     - location: scripts/ApplicationStop.sh
       timeout:  300
-      runas:  pi
+      runas:  root
   BeforeInstall:
     - location: scripts/BeforeInstall.sh
       timeout:  300
-      runas:  pi
+      runas:  root
   AfterInstall:
     - location: scripts/AfterInstall.sh
       timeout:  300
-      runas:  pi
+      runas:  root
   ApplicationStart:
     - location: scripts/ApplicationStart.sh
       timeout:  300
-      runas:  pi
+      runas:  root
