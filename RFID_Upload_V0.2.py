@@ -314,7 +314,8 @@ if __name__ == "__main__":
             cnt+=1
             time.sleep(1)
         except Exception as inst:
-            print("Type",type(inst))    # the exception instance
-            print("Args",inst.args)     # arguments stored in .args
-            print("Inst",inst)  
+            sys.exit(1)
+            # print("Type",type(inst))    # the exception instance
+            # print("Args",inst.args)     # arguments stored in .args
+            # print("Inst",inst)  
 
