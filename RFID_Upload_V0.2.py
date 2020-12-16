@@ -250,132 +250,178 @@ def gui_bk_proc(x, queue, rq):
     master.after(900, tloop)
     tk.mainloop()
 
-def command(d):
-    print(d)
+class DisplayTagIdGUI(Process):
+  """
+  This class is used to create a GUI that will be used to display the list of tags that
+  are being read from the USB device
+  """
 
-#   This function will run the GUI process to show a UI via TKinter
-def start_gui(gui_child_queue):
-    possible_locations = None
-    while possible_locations is None:
-        possible_locations = gui_child_queue.get()
-    root = tk.Tk()
-    for location in possible_locations:
-        e = ttk.Button(root, text=location, command=lambda j=location: command(j))
-        e.pack(side=tk.TOP)
+  def __init__(self, queue: list):
+    Process.__init__(self)
+    self.queue = queue
+
+  def scan(self):
+    print("Scan")
+  
+  def upload(self):
+    print("Upload")
+
+  def run_loop(self):
+    pass
+
+  def run(self):
+    self.root = tk.Tk()
+    self.canvas = tk.Canvas(self.root, bg="white",
+                            width=800,
+                            height=450)
+    self.canvas.pack(side=tk.TOP)
+    scan_button = ttk.Button(self.root, text="Scan", command=self.scan)
+    upload_button = ttk.Button(self.root, text="Upload", command=self.upload)
+    scan_button.pack(side=tk.RIGHT)
+    upload_button.pack(side=tk.RIGHT)
+    self.root.after(900, self.run_loop)
     tk.mainloop()
+    
 
-class GUI(Process):
-    """
-    This class is used to create a GUI that will be used to display the list of possible locations to the user
-    and allow the user to select a location
-    """
-    def __init__(self, queue):
-        Process.__init__(self)
-        self.queue = queue
-        self.possible_locations = None
-        self.buttons = {}
+class SelectLocationGUI(Process):
+  """
+  This class is used to create a GUI that will be used to display the list of possible locations to the user
+  and allow the user to select a location
+  """
 
-    def command(self, d):
-        print(d)
-        dirname = path.dirname(__file__)
-        filename = path.join(dirname, 'location.txt')
-        with open(filename, 'w+') as f:
-            f.write(d)
+  def __init__(self, queue: list):
+    Process.__init__(self)
+    print(queue)
+    self.queue = queue
+    self.possible_locations = None
+    self.buttons = {}
 
-    def run(self):
-        while self.possible_locations is None:
-            self.possible_locations = self.queue.get()
-        self.root = tk.Tk()
-        self.canvas = tk.Canvas(master, bg="white",
-                       width=canvas_width,
-                       height=canvas_height)
-        for location in self.possible_locations:
-            key = f"button_{location}"
-            self.buttons[key] = ttk.Button(self.root, text=location, command=lambda j=location: self.command(j))
-            self.buttons[key].pack(side=tk.TOP)
-        tk.mainloop()
+  def command(self, loc: str):
+    dirname = path.dirname(__file__)
+    filename = path.join(dirname, 'location.txt')
+    with open(filename, 'w+') as f:
+      f.write(loc)
+    self.root.destroy()
+
+  def run(self):
+    while self.possible_locations is None:
+      self.possible_locations = self.queue.get()
+    self.root = tk.Tk()
+    self.canvas = tk.Canvas(master, bg="white",
+                            width=canvas_width,
+                            height=canvas_height)
+    for location in self.possible_locations:
+      key = f"button_{location}"
+      self.buttons[key] = ttk.Button(
+          self.root, text=location, command=lambda loc=location: self.command(loc))
+      self.buttons[key].pack(side=tk.TOP)
+    tk.mainloop()
 
 ###########################################################
 
 # This function is used to call the GPS device attached via USB
 # and fetch the latitude and longitude
+
+
 def get_latitude_and_longitude(gps_child_queue):
-    time_end = time.time() + 5
+  time_end = time.time() + 5
 
-    #   Read from the GPS device for 30 seconds
-    # serial_device = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-    # while time.time() < 30:
-    #     x = serial_device.readline()
-    #     y = x[:-2].decode('utf-8')
-    #     if y.find("RMC") > 0:
-    #         message = pynmea2.parse(str(y))
-    #         latitude = message.latitude
-    #         longitude = message.longitude
+  #   Read from the GPS device for 30 seconds
+  # serial_device = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+  # while time.time() < 30:
+  #   x = serial_device.readline()
+  #   y = x[:-2].decode('utf-8')
+  #   if y.find("RMC") > 0:
+  #     message = pynmea2.parse(str(y))
+  #     latitude = message.latitude
+  #     longitude = message.longitude
 
-    # gps_child_queue.put({ latitude: latitude, longitude: longitude })
+  # gps_child_queue.put({ latitude: latitude, longitude: longitude })
 
-    #   Use this for testing
-    while time.time() < time_end:
-        latitude = 13.02518000
-        longitude = 77.63192000
-    gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
+  #   Use this for testing
+  while time.time() < time_end:
+    latitude = 13.02518000
+    longitude = 77.63192000
+  gps_child_queue.put({'latitude': latitude, 'longitude': longitude})
+
 
 def get_location(location_object):
-    try:
-        api_request = MakeApiRequest('/service/validate/locations')
-        payload = { 'latitude': location_object['latitude'], 'longitude': location_object['longitude'] }
-        response = api_request.get(payload)
-        return response
-    except Exception as err:
-        print("Sorry, there was an error while fetching the location. Please try again")
-        print(err)
+  try:
+    api_request = MakeApiRequest('/service/validate/locations')
+    payload = {
+        'latitude': location_object['latitude'], 'longitude': location_object['longitude']}
+    response = api_request.get(payload)
+    return response
+  except Exception as err:
+    print("Sorry, there was an error while fetching the location. Please try again")
+    print(err)
+
 
 if __name__ == "__main__":
-    # wq = Queue()
-    # rq1= Queue()  #There is no need for the random number queue
-    # rq2= Queue()  #There is no need for the random number queue
-    # gpsq= Queue() #There is no need for the GPS queue
-    # tagq= Queue()
-    # guibq= Queue()
-    # uploadq= Queue()
+  # wq = Queue()
+  # rq1= Queue()  #There is no need for the random number queue
+  # rq2= Queue()  #There is no need for the random number queue
+  # gpsq= Queue() #There is no need for the GPS queue
+  # tagq= Queue()
+  # guibq= Queue()
+  # uploadq= Queue()
 
-    #   This variable will determine whether the location should be checked or not
-    should_check_location = False
+  # This variable will determine whether the location should be checked or not
+  should_check_location = False
 
-    #   First, check if there is a location file which has been written to
-    #   If there is no file with location saved, fire up GPS device and fetch latitude & longitude
-    dirname = path.dirname(__file__)
-    filename = path.join(dirname, 'location.txt')
-    try:
-        with open(filename, 'r') as f:
-            print(f)
-    except FileNotFoundError:
-        # get_location()
-        should_check_location = True
+  # First, check if there is a location file which has been written to
+  # If there is no file with location saved, fire up GPS device and fetch latitude & longitude
+  # Then allow user to select the correct location
+  dirname = path.dirname(__file__)
+  filename = path.join(dirname, 'location.txt')
+  try:
+    with open(filename, 'r') as f:
+      location = f.readline()
+  except FileNotFoundError:
+    should_check_location = True
 
-    processes = []
-    gui_queue = Queue()
-    # gui_process = Process(target=start_gui, args=(gui_queue,))
-    gui_process = GUI(gui_queue)
-    processes.append(gui_process)
+  # Define a list to hold all the process references
+  processes = []
 
-    if should_check_location is True:
-        gps_queue = Queue()
-        gps_process = Process(target=get_latitude_and_longitude, args=(gps_queue,))
-        processes.append(gps_process)
-        # gps_process.start()
-        # gps_process.join()
-        # location_data = gps_queue.get()
-        # get_location(location_data)
-    
+  # Start GPS process and allow user to select location only if
+  # locatio has not already been set
+  if should_check_location is True:
+    select_location_gui_queue = Queue()
+    select_location_gui_process = SelectLocationGUI(select_location_gui_queue)
+    gps_queue = Queue()
+    gps_process = Process(
+        target=get_latitude_and_longitude, args=(gps_queue,))
+    processes.append(gps_process)
+    processes.append(select_location_gui_process)
+
+    # display_tag_id_gui_queue = Queue()
+    # display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue)
+    # processes.append(display_tag_id_gui_process)
+
+    # Start the processes
     for process in processes:
-        process.start()
+      process.start()
 
+    # Pass data between the various processes
     location_data = gps_queue.get()
     possible_locations = get_location(location_data)
+    select_location_gui_queue.put(possible_locations)
 
-    gui_queue.put(possible_locations)
-        
+    # Clear the process list
+    processes.clear()
+
+  display_tag_id_gui_queue = Queue()
+  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue)
+  processes.append(display_tag_id_gui_process)
+
+  for process in processes:
+    process.start()
+    process.join()
+
+
+
+
+
 
     # a=Process(target=rand_num, args=(0,wq,rq1))
     # b=Process(target=rand_num, args=(1,wq,rq2))
