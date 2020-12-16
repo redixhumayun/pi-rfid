@@ -9,8 +9,9 @@ import sys
 import requests
 import json
 import tkinter as tk
+from tkinter import ttk
 
-load_dotenv()
+from make_api_request import MakeApiRequest
 #########################################################################
 
 ps = 0
@@ -249,12 +250,55 @@ def gui_bk_proc(x, queue, rq):
     master.after(900, tloop)
     tk.mainloop()
 
+def command(d):
+    print(d)
+
+#   This function will run the GUI process to show a UI via TKinter
+def start_gui(gui_child_queue):
+    possible_locations = None
+    while possible_locations is None:
+        possible_locations = gui_child_queue.get()
+    root = tk.Tk()
+    for location in possible_locations:
+        e = ttk.Button(root, text=location, command=lambda j=location: command(j))
+        e.pack(side=tk.TOP)
+    tk.mainloop()
+
+class GUI(Process):
+    """
+    This class is used to create a GUI that will be used to display the list of possible locations to the user
+    and allow the user to select a location
+    """
+    def __init__(self, queue):
+        Process.__init__(self)
+        self.queue = queue
+        self.possible_locations = None
+        self.buttons = {}
+
+    def command(self, d):
+        print(d)
+        dirname = path.dirname(__file__)
+        filename = path.join(dirname, 'location.txt')
+        with open(filename, 'w+') as f:
+            f.write(d)
+
+    def run(self):
+        while self.possible_locations is None:
+            self.possible_locations = self.queue.get()
+        self.root = tk.Tk()
+        self.canvas = tk.Canvas(master, bg="white",
+                       width=canvas_width,
+                       height=canvas_height)
+        for location in self.possible_locations:
+            key = f"button_{location}"
+            self.buttons[key] = ttk.Button(self.root, text=location, command=lambda j=location: self.command(j))
+            self.buttons[key].pack(side=tk.TOP)
+        tk.mainloop()
+
 ###########################################################
 
 # This function is used to call the GPS device attached via USB
 # and fetch the latitude and longitude
-
-
 def get_latitude_and_longitude(gps_child_queue):
     time_end = time.time() + 5
 
@@ -270,13 +314,21 @@ def get_latitude_and_longitude(gps_child_queue):
 
     # gps_child_queue.put({ latitude: latitude, longitude: longitude })
 
+    #   Use this for testing
     while time.time() < time_end:
         latitude = 13.02518000
         longitude = 77.63192000
     gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
 
 def get_location(location_object):
-
+    try:
+        api_request = MakeApiRequest('/service/validate/locations')
+        payload = { 'latitude': location_object['latitude'], 'longitude': location_object['longitude'] }
+        response = api_request.get(payload)
+        return response
+    except Exception as err:
+        print("Sorry, there was an error while fetching the location. Please try again")
+        print(err)
 
 if __name__ == "__main__":
     # wq = Queue()
@@ -286,22 +338,6 @@ if __name__ == "__main__":
     # tagq= Queue()
     # guibq= Queue()
     # uploadq= Queue()
-
-    #   Load all the env variables
-    api_url = os.getenv("SERVER_BASE_URL")
-    client_id = os.getenv("CLIENT_ID")
-    client_secret = os.getenv("CLIENT_SECRET")
-    audience = os.getenv("AUDIENCE")
-    grant_type = os.getenv("GRANT_TYPE")
-    auth0_domain = os.getenv("AUTH0_DOMAIN")
-
-    #   First create a payload and make a request to get the authentication token
-    api_request = MakeApiRequest(f"{auth0_domain}")
-    payload = {'client_id': client_id, 'client_secret': client_secret,
-            'audience': audience, 'grant_type': grant_type}
-    response = api_request.post(payload)
-    access_token = response['access_token']
-    MakeApiRequest.add_authentication_header(access_token)
 
     #   This variable will determine whether the location should be checked or not
     should_check_location = False
@@ -318,14 +354,27 @@ if __name__ == "__main__":
         should_check_location = True
 
     processes = []
+    gui_queue = Queue()
+    # gui_process = Process(target=start_gui, args=(gui_queue,))
+    gui_process = GUI(gui_queue)
+    processes.append(gui_process)
 
     if should_check_location is True:
         gps_queue = Queue()
         gps_process = Process(target=get_latitude_and_longitude, args=(gps_queue,))
-        gps_process.start()
-        gps_process.join()
-        location_data = gps_queue.get()
-        get_location(location_data)
+        processes.append(gps_process)
+        # gps_process.start()
+        # gps_process.join()
+        # location_data = gps_queue.get()
+        # get_location(location_data)
+    
+    for process in processes:
+        process.start()
+
+    location_data = gps_queue.get()
+    possible_locations = get_location(location_data)
+
+    gui_queue.put(possible_locations)
         
 
     # a=Process(target=rand_num, args=(0,wq,rq1))
