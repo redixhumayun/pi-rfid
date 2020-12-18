@@ -9,85 +9,85 @@ import sys
 import requests
 import json
 import tkinter as tk
-from tkinter import ttk
+from tkinter import BooleanVar, ttk, messagebox
 
 from make_api_request import MakeApiRequest
 #########################################################################
 
-ps = 0
-cnt = 0
-tagid = []
+# ps = 0
+# cnt = 0
+# tagid = []
 
-Alltags = []
-sttime = 0
-prevtime = 0
-
-
-def pr_tagid(que, ss):
-    global sttime, prevtime
-    taghex = ""
-
-    sttime = time.time()
-    a = len(tagid)
-    for i in range(a):
-        if i > 3 and i < 16:
-            taghex += "{0:02X}".format(tagid[i])
-        #print(hex(tagid[i]),end=" ")
-
-    if taghex not in Alltags:
-        Alltags.append(taghex)
-        print(taghex, ": Added")
-
-    if ss == 1:
-        if sttime - prevtime > 1.0:
-            print("Sending all tags")
-            lentag = len(Alltags)
-            S = str(lentag)+" "
-            if lentag > 0:
-                for i in range(lentag):
-                    S += (Alltags[i]+" ")
-
-            que.put("TAG "+S)
-            prevtime = sttime
+# Alltags = []
+# sttime = 0
+# prevtime = 0
 
 
-# This function is used to read the tags from the RFID reader plugged in via USB
-def tagreader_proc(x, queue, rq):
-    global ps
-    sstop = 0
-    trq = rq
-    S = ""
+# def pr_tagid(que, ss):
+#     global sttime, prevtime
+#     taghex = ""
 
-    ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+#     sttime = time.time()
+#     a = len(tagid)
+#     for i in range(a):
+#         if i > 3 and i < 16:
+#             taghex += "{0:02X}".format(tagid[i])
+#         #print(hex(tagid[i]),end=" ")
 
-    while True:
-        x = ser.read()
-        i = int.from_bytes(x, "big")
-        #print(hex(i), end=" ")
-        sys.stdout.flush()
-        if not trq.empty():
-            arq = trq.get()
-            if arq == "start":
-                print("setting sstop")
-                sstop = 1
-               # if len(Alltags) == 0:
-               #     queue.put("TAG: 0")
-                Alltags.clear()
-            else:
-                sstop = 0
-                Alltags.clear()
+#     if taghex not in Alltags:
+#         Alltags.append(taghex)
+#         print(taghex, ": Added")
 
-        if i == 0x11:
-            ps = 1
-            cnt = 0
-        if ps:
-            tagid.append(i)
-            cnt += 1
-            if cnt == 18:
-                cnt = 0
-                ps = 0
-                pr_tagid(queue, sstop)
-                tagid.clear()
+#     if ss == 1:
+#         if sttime - prevtime > 1.0:
+#             print("Sending all tags")
+#             lentag = len(Alltags)
+#             S = str(lentag)+" "
+#             if lentag > 0:
+#                 for i in range(lentag):
+#                     S += (Alltags[i]+" ")
+
+#             que.put("TAG "+S)
+#             prevtime = sttime
+
+
+# # This function is used to read the tags from the RFID reader plugged in via USB
+# def tagreader_proc(x, queue, rq):
+#     global ps
+#     sstop = 0
+#     trq = rq
+#     S = ""
+
+#     ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+
+#     while True:
+#         x = ser.read()
+#         i = int.from_bytes(x, "big")
+#         #print(hex(i), end=" ")
+#         sys.stdout.flush()
+#         if not trq.empty():
+#             arq = trq.get()
+#             if arq == "start":
+#                 print("setting sstop")
+#                 sstop = 1
+#                # if len(Alltags) == 0:
+#                #     queue.put("TAG: 0")
+#                 Alltags.clear()
+#             else:
+#                 sstop = 0
+#                 Alltags.clear()
+
+#         if i == 0x11:
+#             ps = 1
+#             cnt = 0
+#         if ps:
+#             tagid.append(i)
+#             cnt += 1
+#             if cnt == 18:
+#                 cnt = 0
+#                 ps = 0
+#                 pr_tagid(queue, sstop)
+#                 tagid.clear()
 
 
 #########################################################################
@@ -110,71 +110,6 @@ def upload_proc(x, queue, rq):
                 queue.put("UP_FAIL")
             else:
                 print(r)
-
-
-#########################################################################
-
-# Reading from the GPS doesn't need to be a process. No idea why this has been turned into a process
-# This just needs to be read once when the program first boots
-# def gps_proc(x,queue,rq):
-#     sstop=0
-#     trq=rq
-#     S=""
-#     ser=serial.Serial('/dev/ttyACM0', 9600,timeout=1)
-
-#     while True:
-#         try:
-#             x = ser.readline()
-#             y=x[:-2].decode("utf-8")
-#             if  y.find("RMC") > 0:
-#                 msg = pynmea2.parse(str(y))
-#                 S="GPS " +"{:.2f}".format(msg.latitude)+" "+"{:.2f}".format(msg.longitude)
-
-#                 if sstop ==1:
-#                    queue.put(S)
-#             if not trq.empty():
-#                 arq=trq.get()
-#                 print("Gps Process Ret:",arq)
-#                 if arq == "start":
-#                     sstop=1
-#                 else:
-#                     sstop=0
-
-
-#         except Exception as e:
-#             print("GPS Excepton caught",e)
-
-
-# This function is apparently just generating random numbers
-# and not doing anything else. No idea why this is in here
-
-# def rand_num(x,queue,rq):
-#     sstop=0
-#     trq=-1
-#     if x == 0:
-#         trq= rq1
-#     elif x == 1:
-#         trq=rq2
-#     elif x == 2:
-#         trq=rq3
-
-#     while True:
-#         num = random.random()
-#         S=str(x)+" "+str(num)
-#         if not trq.empty():
-#             arq=trq.get()
-#             print("Process Ret:",x,arq)
-#             if arq == "start":
-#                 sstop=1
-#             else:
-#                 sstop=0
-#         if sstop ==1:
-#             queue.put(S)
-#         #time.sleep(random.randint(1,10))
-#         time.sleep(1)
-
-
-###########################################################
 
 canvas_width = 800
 canvas_height = 450
@@ -250,26 +185,235 @@ def gui_bk_proc(x, queue, rq):
     master.after(900, tloop)
     tk.mainloop()
 
+ps = 0
+cnt = 0
+tagid = []
+
+Alltags = []
+sttime = 0
+prevtime = 0
+
+
+def pr_tagid(que, ss):
+    global sttime, prevtime
+    taghex = ""
+
+    sttime = time.time()
+    a = len(tagid)
+    for i in range(a):
+        if i > 3 and i < 16:
+            taghex += "{0:02X}".format(tagid[i])
+            #print(hex(tagid[i]),end=" ")
+
+    if taghex not in Alltags:
+        Alltags.append(taghex)
+        print(taghex, ": Added")
+
+    if ss == 1:
+        if sttime - prevtime > 1.0:
+            print("Sending all tags")
+            lentag = len(Alltags)
+            S = str(lentag)+" "
+            if lentag > 0:
+                for i in range(lentag):
+                    S += (Alltags[i]+" ")
+
+            que.put("TAG "+S)
+            prevtime = sttime
+
+
+# This function is used to read the tags from the RFID reader plugged in via USB
+def tagreader_proc(x, queue, rq):
+    global ps
+    sstop = 0
+    trq = rq
+    S = ""
+
+    ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+
+    while True:
+        x = ser.read()
+        i = int.from_bytes(x, "big")
+        #print(hex(i), end=" ")
+        sys.stdout.flush()
+        if not trq.empty():
+            arq = trq.get()
+            if arq == "start":
+                print("setting sstop")
+                sstop = 1
+               # if len(Alltags) == 0:
+               #     queue.put("TAG: 0")
+                Alltags.clear()
+            else:
+                sstop = 0
+                Alltags.clear()
+
+        if i == 0x11:
+            ps = 1
+            cnt = 0
+        if ps:
+            tagid.append(i)
+            cnt += 1
+            if cnt == 18:
+                cnt = 0
+                ps = 0
+                pr_tagid(queue, sstop)
+                tagid.clear()
+
+class TagReader(Process):
+  """
+  This class is used to read values from the RFID reader connected via USB
+  """
+  def __init__(self, queue, main_queue):
+    Process.__init__(self)
+    self.queue = queue
+    self.main_queue = main_queue
+    self.serial_device = None
+    self.should_read_tags = False
+    self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
+    self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
+    self.string_of_tags = ""
+
+  def convert_tags_to_hex(self, send_back_tag_values: bool):
+    """
+    This method is called to convert a list of bytes into one complete
+    RFID tag
+
+    Parameters
+    ----------
+    send_back_tag_values: boolean
+    """
+    tag_hex_value = ""
+    for index, bytes_value in enumerate(self.tag_bytes_list):
+      # The assumption here is that the first 3 bytes and the last byte are just placeholders
+      if index > 3 and index < 16:
+        tag_hex_value += "{0:02X}".format(bytes_value)
+
+    if tag_hex_value not in self.tag_hex_list:
+      self.tag_hex_list.append(tag_hex_value)
+
+    if send_back_tag_values is True and len(self.tag_hex_list) > 0:
+      self.string_of_tags = str(len(self.tag_hex_list)) + " "
+      for tag_value in self.tag_hex_list:
+        self.string_of_tags += tag_value + " "
+      
+      self.main_queue.put("TAGS: " + self.string_of_tags)
+      self.string_of_tags = ""
+
+  def read_tags_bytes(self):
+    """
+    This method is called to start reading the byte strings from the serial
+    device connected via USB
+
+    Raises
+    ------
+    serial.serialutil.SerialException
+      If the USB device is not connected properly and cannot be read from
+    """
+    try:
+      self.serial_device = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+    except serial.serialutil.SerialException as err:
+      raise err
+
+    while True:
+      send_back_tag_values = False
+      input_queue_string = self.queue.get()
+      if input_queue_string == "SCAN":
+        send_back_tag_values = True
+      else:
+        send_back_tag_values = False
+
+      read_bytes = self.serial_device.read()
+      int_value = int.from_bytes(read_bytes, "big")
+      sys.stdout.flush()
+
+      # The assumption here is that the starting byte of any tag id is 0x11 (which is 17)
+      if int_value == 0x11:
+        self.should_read_tags = True
+      
+      if self.should_read_tags is True:
+        self.tag_bytes_list.append(int_value)
+
+        # The assumption here is that one RFID tag has a sequence of 18 bytes
+        if len(self.tag_bytes_list) == 18:
+          self.should_read_tags = False
+          self.convert_tags_to_hex(send_back_tag_values)
+          self.tag_bytes_list.clear() # Clear the bytes from the RFID tag read in preparation for the next one
+
+  def run(self):
+    """
+    This method is required to be implemented by any class
+    that sub-classes multiprocessing.Process
+    """
+    self.read_tags_bytes()
+
 class DisplayTagIdGUI(Process):
   """
   This class is used to create a GUI that will be used to display the list of tags that
   are being read from the USB device
   """
 
-  def __init__(self, queue: list):
+  def __init__(self, queue: list, main_queue: list):
+    """
+    Parameters
+    ----------
+    queue: list
+      The list into which the main process will input data
+    main_queue: list
+      The list into which this process will transfer data back to the
+      main process
+    """
     Process.__init__(self)
     self.queue = queue
+    self.main_queue = main_queue
+    self.action_to_perform = None
 
   def scan(self):
-    print("Scan")
+    """
+    This method is called when the scan button is pressed
+    """
+    self.main_queue.put("SCAN")
   
   def upload(self):
-    print("Upload")
+    """
+    This method is called when the upload button is pressed
+    """
+    self.main_queue.put("UPLOAD")
+
+  def close_window(self):
+    """
+    This method is called when the close button is pressed
+    """
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+      self.main_queue.put("QUIT")
+      self.root.destroy()
 
   def run_loop(self):
-    pass
+    """
+    This method is used to run a loop every 900ms and is called
+    by TKinter. It listens for user interactions
+
+    Raises
+    ------
+    Exception
+      Raises a base Exception if a button that is neither scan nor upload
+      is clicked
+    """
+    if self.action_to_perform == "scan":
+      self.main_queue.put("scan")
+    elif self.action_to_perform == "upload":
+      self.main_queue.put("upload")
+    elif self.action_to_perform is None:
+      # Do nothing if its still default value
+      pass
+    else:
+      raise Exception('An undefined button was pressed')
 
   def run(self):
+    """
+    This method is required to be implemented by any class
+    that sub-classes multiprocessing.Process
+    """
     self.root = tk.Tk()
     self.canvas = tk.Canvas(self.root, bg="white",
                             width=800,
@@ -279,6 +423,7 @@ class DisplayTagIdGUI(Process):
     upload_button = ttk.Button(self.root, text="Upload", command=self.upload)
     scan_button.pack(side=tk.RIGHT)
     upload_button.pack(side=tk.RIGHT)
+    self.root.protocol("WM_DELETE_WINDOW", self.close_window)
     self.root.after(900, self.run_loop)
     tk.mainloop()
     
@@ -296,14 +441,27 @@ class SelectLocationGUI(Process):
     self.possible_locations = None
     self.buttons = {}
 
-  def command(self, loc: str):
+  def command(self, location: str):
+    """
+    This method is used to listen to a click event where the user
+    picks the location
+
+    Parameters
+    ----------
+    location: str, required
+      The location selected by the user
+    """
     dirname = path.dirname(__file__)
     filename = path.join(dirname, 'location.txt')
     with open(filename, 'w+') as f:
-      f.write(loc)
+      f.write(location)
     self.root.destroy()
 
   def run(self):
+    """
+    This method is required to be implemented by any class
+    that sub-classes multiprocessing.Process
+    """
     while self.possible_locations is None:
       self.possible_locations = self.queue.get()
     self.root = tk.Tk()
@@ -317,18 +475,16 @@ class SelectLocationGUI(Process):
       self.buttons[key].pack(side=tk.TOP)
     tk.mainloop()
 
-###########################################################
 
 # This function is used to call the GPS device attached via USB
 # and fetch the latitude and longitude
 
-
 def get_latitude_and_longitude(gps_child_queue):
   time_end = time.time() + 5
 
-  #   Read from the GPS device for 30 seconds
+  # Read from the GPS device for 30 seconds
   # serial_device = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-  # while time.time() < 30:
+  # while time.time() < time_end:
   #   x = serial_device.readline()
   #   y = x[:-2].decode('utf-8')
   #   if y.find("RMC") > 0:
@@ -381,22 +537,23 @@ if __name__ == "__main__":
     should_check_location = True
 
   # Define a list to hold all the process references
-  processes = []
+  processes: list = []
 
   # Start GPS process and allow user to select location only if
   # locatio has not already been set
   if should_check_location is True:
-    select_location_gui_queue = Queue()
-    select_location_gui_process = SelectLocationGUI(select_location_gui_queue)
+
+    # Create the GUI and associated queue to fetch lat & long using GPS device
     gps_queue = Queue()
     gps_process = Process(
         target=get_latitude_and_longitude, args=(gps_queue,))
+
+    # Create the GUI and associated queue to allow the user to select the location
+    select_location_gui_queue = Queue()
+    select_location_gui_process = SelectLocationGUI(select_location_gui_queue)
+
     processes.append(gps_process)
     processes.append(select_location_gui_process)
-
-    # display_tag_id_gui_queue = Queue()
-    # display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue)
-    # processes.append(display_tag_id_gui_process)
 
     # Start the processes
     for process in processes:
@@ -410,16 +567,34 @@ if __name__ == "__main__":
     # Clear the process list
     processes.clear()
 
+  # Create the main queue that will be used for parent child communication
+  main_queue = Queue()
+
+  # Create the GUI and associated queue to allow the user to view the scanned tags
   display_tag_id_gui_queue = Queue()
-  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue)
+  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
   processes.append(display_tag_id_gui_process)
+
+  # Create the process associated with reading tags
+  read_tags_queue = Queue()
+  read_tags_process = TagReader(read_tags_queue, main_queue)
+  processes.append(read_tags_process)
 
   for process in processes:
     process.start()
-    process.join()
 
+  should_exit_program = False
 
-
+  while should_exit_program is False:
+    main_queue_value = main_queue.get()
+    print("main_queue_value", main_queue_value)
+    if main_queue_value == "SCAN":
+      print("START SCANNING")
+      read_tags_queue.put("SCAN")
+    elif main_queue_value == "UPLOAD":
+      print("START UPLOADING")
+    elif main_queue_value == "QUIT":
+      should_exit_program = True
 
 
 
