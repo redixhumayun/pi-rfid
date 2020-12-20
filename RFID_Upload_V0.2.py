@@ -9,7 +9,7 @@ import sys
 import requests
 import json
 import tkinter as tk
-from tkinter import BooleanVar, ttk, messagebox
+from tkinter import ttk, messagebox
 
 from make_api_request import MakeApiRequest
 #########################################################################
@@ -259,6 +259,26 @@ def tagreader_proc(x, queue, rq):
                 ps = 0
                 pr_tagid(queue, sstop)
                 tagid.clear()
+
+def upload_tags(queue, main_queue):
+  api_request = MakeApiRequest('/fabship/product/rfid/epc')
+
+  should_exit_loop = False
+  while should_exit_loop is False:
+    main_queue_value = main_queue.get()
+    if main_queue_value == "QUIT":
+      should_exit_loop = True
+    list_of_tags_to_upload: list = queue.get()
+    if len(list_of_tags_to_upload) > 0:
+      dirname = path.dirname(__file__)
+      filename = path.join(dirname, 'location.txt')
+      try:
+        with open(filename, 'r') as f:
+          location = f.readline()
+      except FileNotFoundError as err:
+        raise err
+      api_request.post(list_of_tags_to_upload)
+
 
 class TagReader(Process):
   """
@@ -580,10 +600,17 @@ if __name__ == "__main__":
   read_tags_process = TagReader(read_tags_queue, main_queue)
   processes.append(read_tags_process)
 
+  # Create the queue and process associated with uploading tags
+  upload_tags_queue = Queue()
+  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue,))
+  processes.append(upload_tags_process)
+
   for process in processes:
     process.start()
 
   should_exit_program = False
+
+  list_of_tags_to_upload = []
 
   while should_exit_program is False:
     main_queue_value = main_queue.get()
@@ -593,8 +620,15 @@ if __name__ == "__main__":
       read_tags_queue.put("SCAN")
     elif main_queue_value == "UPLOAD":
       print("START UPLOADING")
+      upload_tags_queue.put(list_of_tags_to_upload)
     elif main_queue_value == "QUIT":
+      upload_tags_queue.put("QUIT")
       should_exit_program = True
+    elif main_queue_value.find("TAG") == 1:
+      split_string = main_queue_value.split()
+      list_of_tags = split_string[1:]
+      display_tag_id_gui_queue.put(list_of_tags)
+      list_of_tags_to_upload.append(list_of_tags)
 
 
 
