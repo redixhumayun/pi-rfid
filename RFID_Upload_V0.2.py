@@ -265,9 +265,9 @@ class SelectLocationGUI(Process):
     while self.possible_locations is None:
       self.possible_locations = self.queue.get()
     self.root = tk.Tk()
-    self.canvas = tk.Canvas(master, bg="white",
-                            width=canvas_width,
-                            height=canvas_height)
+    self.canvas = tk.Canvas(self.root, bg="white",
+                            width=800,
+                            height=450)
     for location in self.possible_locations:
       key = f"button_{location}"
       self.buttons[key] = ttk.Button(
