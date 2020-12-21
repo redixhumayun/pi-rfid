@@ -1,266 +1,20 @@
 #!/usr/bin/python3
 from os import path
 from multiprocessing import Process, Queue
-import random
 import time
 import serial
 import pynmea2
 import sys
 import requests
-import json
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 from make_api_request import MakeApiRequest
-#########################################################################
-
-# ps = 0
-# cnt = 0
-# tagid = []
-
-# Alltags = []
-# sttime = 0
-# prevtime = 0
-
-
-# def pr_tagid(que, ss):
-#     global sttime, prevtime
-#     taghex = ""
-
-#     sttime = time.time()
-#     a = len(tagid)
-#     for i in range(a):
-#         if i > 3 and i < 16:
-#             taghex += "{0:02X}".format(tagid[i])
-#         #print(hex(tagid[i]),end=" ")
-
-#     if taghex not in Alltags:
-#         Alltags.append(taghex)
-#         print(taghex, ": Added")
-
-#     if ss == 1:
-#         if sttime - prevtime > 1.0:
-#             print("Sending all tags")
-#             lentag = len(Alltags)
-#             S = str(lentag)+" "
-#             if lentag > 0:
-#                 for i in range(lentag):
-#                     S += (Alltags[i]+" ")
-
-#             que.put("TAG "+S)
-#             prevtime = sttime
-
-
-# # This function is used to read the tags from the RFID reader plugged in via USB
-# def tagreader_proc(x, queue, rq):
-#     global ps
-#     sstop = 0
-#     trq = rq
-#     S = ""
-
-#     ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
-
-#     while True:
-#         x = ser.read()
-#         i = int.from_bytes(x, "big")
-#         #print(hex(i), end=" ")
-#         sys.stdout.flush()
-#         if not trq.empty():
-#             arq = trq.get()
-#             if arq == "start":
-#                 print("setting sstop")
-#                 sstop = 1
-#                # if len(Alltags) == 0:
-#                #     queue.put("TAG: 0")
-#                 Alltags.clear()
-#             else:
-#                 sstop = 0
-#                 Alltags.clear()
-
-#         if i == 0x11:
-#             ps = 1
-#             cnt = 0
-#         if ps:
-#             tagid.append(i)
-#             cnt += 1
-#             if cnt == 18:
-#                 cnt = 0
-#                 ps = 0
-#                 pr_tagid(queue, sstop)
-#                 tagid.clear()
-
-
-#########################################################################
-def upload_proc(x, queue, rq):
-    trq = rq
-    while True:
-        if not trq.empty():
-            arq = trq.get()
-            print("------------Upload Process Ret:", arq)
-            url = 'http://eetrax.com/json_my/jd2.php'
-            payload = arq
-            try:
-                r = requests.post(url, json=payload, timeout=4)
-                if r.status_code == 200:
-                    queue.put("UP_SUCCESS")
-                else:
-                    queue.put("UP_FAIL")
-            except Exception as err:
-                print(err)
-                queue.put("UP_FAIL")
-            else:
-                print(r)
-
-canvas_width = 800
-canvas_height = 450
-scan = 0
-dvar = -1
-
-tk_wq = ""
-tk_sq = ""
-master = ""
-canvas = -1
-upvar = -1
-
-
-def scan():
-    global scan
-    scan = 1
-
-
-def upload():
-    global upvar
-    upvar = 1
-
-
-def tloop():
-    global scan, canvas, dvar, tk_wq, tk_sq, master, upvar
-    if scan == 1:
-        scan = 0
-        if dvar > -1:
-            jj = canvas.delete("cantext")
-            master.update()
-            print("Ret Dvar", dvar, jj)
-        tk_wq.put("TKFE_SCAN")
-    if upvar == 1:
-        upvar = 0
-        if dvar > -1:
-            jj = canvas.delete("cantext")
-            master.update()
-            print("Up Dvar", dvar, jj)
-        tk_wq.put("TKFE_UPLOAD")
-
-    if not tk_sq.empty():
-        arq = tk_sq.get()
-        print("TK Process Ret:", arq)
-        if dvar > -1:
-            jj = canvas.delete("cantext")
-            master.update()
-        dvar = canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
-                                  font="Helvetica 80 bold", text=str(arq), tag="cantext")
-        master.update()
-
-    master.after(300, tloop)
-
-# This function will run the TKinter GUI as a process
-
-
-def gui_bk_proc(x, queue, rq):
-    global tk_wq, tk_sq, master, canvas
-    tk_wq = queue
-    tk_sq = rq
-    master = tk.Tk()
-
-    canvas = tk.Canvas(master, bg="white",
-                       width=canvas_width,
-                       height=canvas_height)
-    canvas.pack(side=tk.TOP)
-    # bk = tk.PhotoImage(file="rfid-bk.png")
-    # bkimg=canvas.create_image(0,0, anchor=tk.NW, image=bk)
-    master.update()
-    b_scan = tk.Button(master, text="Scan", command=scan)
-    b_scan.pack(side=tk.RIGHT)
-    b_up = tk.Button(master, text="Upload", command=upload)
-    b_up.pack(side=tk.RIGHT)
-    master.after(900, tloop)
-    tk.mainloop()
-
-ps = 0
-cnt = 0
-tagid = []
-
-Alltags = []
-sttime = 0
-prevtime = 0
-
-
-def pr_tagid(que, ss):
-    global sttime, prevtime
-    taghex = ""
-
-    sttime = time.time()
-    a = len(tagid)
-    for i in range(a):
-        if i > 3 and i < 16:
-            taghex += "{0:02X}".format(tagid[i])
-            #print(hex(tagid[i]),end=" ")
-
-    if taghex not in Alltags:
-        Alltags.append(taghex)
-        print(taghex, ": Added")
-
-    if ss == 1:
-        if sttime - prevtime > 1.0:
-            print("Sending all tags")
-            lentag = len(Alltags)
-            S = str(lentag)+" "
-            if lentag > 0:
-                for i in range(lentag):
-                    S += (Alltags[i]+" ")
-
-            que.put("TAG "+S)
-            prevtime = sttime
-
-
-# This function is used to read the tags from the RFID reader plugged in via USB
-def tagreader_proc(x, queue, rq):
-    global ps
-    sstop = 0
-    trq = rq
-    S = ""
-
-    ser = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
-
-    while True:
-        x = ser.read()
-        i = int.from_bytes(x, "big")
-        #print(hex(i), end=" ")
-        sys.stdout.flush()
-        if not trq.empty():
-            arq = trq.get()
-            if arq == "start":
-                print("setting sstop")
-                sstop = 1
-               # if len(Alltags) == 0:
-               #     queue.put("TAG: 0")
-                Alltags.clear()
-            else:
-                sstop = 0
-                Alltags.clear()
-
-        if i == 0x11:
-            ps = 1
-            cnt = 0
-        if ps:
-            tagid.append(i)
-            cnt += 1
-            if cnt == 18:
-                cnt = 0
-                ps = 0
-                pr_tagid(queue, sstop)
-                tagid.clear()
 
 def upload_tags(queue, main_queue):
+  """
+  This function will be used to run the upload process
+  """
   api_request = MakeApiRequest('/fabship/product/rfid/epc')
 
   should_exit_loop = False
@@ -277,14 +31,28 @@ def upload_tags(queue, main_queue):
           location = f.readline()
       except FileNotFoundError as err:
         raise err
-      api_request.post(list_of_tags_to_upload)
+      try:
+        response = api_request.post({ 'location': location, 'epc': list_of_tags_to_upload })
+        response.raise_for_status()
+        if response.status_code == 200:
+          main_queue.put("UPLOAD_SUCCESS")
+      except requests.exceptions.HTTPError as err:
+        print(err)
+        main_queue.put("UPLOAD_FAIL")
 
 
 class TagReader(Process):
   """
   This class is used to read values from the RFID reader connected via USB
+
+  Attributes
+  ----------
+  queue: Queue
+    A multiprocessing queue that is used by the main process to send instructions to this process
+  main_queue: Queue
+    A multiprocessing queue that is used by this process to communicate information back to the main process
   """
-  def __init__(self, queue, main_queue):
+  def __init__(self, queue: Queue, main_queue: Queue):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
@@ -302,6 +70,7 @@ class TagReader(Process):
     Parameters
     ----------
     send_back_tag_values: boolean
+      A boolean value taht will determine whether the tag values need to be sent back to the main queue
     """
     tag_hex_value = ""
     for index, bytes_value in enumerate(self.tag_bytes_list):
@@ -320,7 +89,7 @@ class TagReader(Process):
       self.main_queue.put("TAGS: " + self.string_of_tags)
       self.string_of_tags = ""
 
-  def read_tags_bytes(self):
+  def read_tag_bytes(self):
     """
     This method is called to start reading the byte strings from the serial
     device connected via USB
@@ -365,7 +134,7 @@ class TagReader(Process):
     This method is required to be implemented by any class
     that sub-classes multiprocessing.Process
     """
-    self.read_tags_bytes()
+    self.read_tag_bytes()
 
 class DisplayTagIdGUI(Process):
   """
@@ -428,6 +197,16 @@ class DisplayTagIdGUI(Process):
       pass
     else:
       raise Exception('An undefined button was pressed')
+
+    try:
+      self.canvas.delete("text_to_be_shown")
+    except Exception as err:
+      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+
+    input_value = self.queue.get()
+    self.canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
+                                  font="Helvetic 80 bold", text=str(input_value), tag="text_to_be_shown")
+    self.root.update()
 
   def run(self):
     """
@@ -534,13 +313,16 @@ def get_location(location_object):
 
 
 if __name__ == "__main__":
-  # wq = Queue()
-  # rq1= Queue()  #There is no need for the random number queue
-  # rq2= Queue()  #There is no need for the random number queue
-  # gpsq= Queue() #There is no need for the GPS queue
-  # tagq= Queue()
-  # guibq= Queue()
-  # uploadq= Queue()
+  """
+  This program is set up to use multi-processing. This is the main process which will spawn
+  all of the child processes.
+  Communication between processes happens using the multi-processing queue.
+  Each process has its own queue, named accordingly. There is also a main process queue
+  Each process is passed its own queue and the main queue as parameters.
+  Each process queue is used by the main queue to communicate to the child process.
+  The main queue is used by the child process to communicate to the main queue.
+  """
+
 
   # This variable will determine whether the location should be checked or not
   should_check_location = False
@@ -614,83 +396,24 @@ if __name__ == "__main__":
 
   while should_exit_program is False:
     main_queue_value = main_queue.get()
-    print("main_queue_value", main_queue_value)
     if main_queue_value == "SCAN":
-      print("START SCANNING")
       read_tags_queue.put("SCAN")
+
     elif main_queue_value == "UPLOAD":
-      print("START UPLOADING")
       upload_tags_queue.put(list_of_tags_to_upload)
+
+    elif main_queue_value == "UPLOAD_SUCCESS":
+      display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
+    
+    elif main_queue_value == "UPLOAD_FAIL":
+      display_tag_id_gui_queue.put("UPLOAD_FAIL")
+
     elif main_queue_value == "QUIT":
       upload_tags_queue.put("QUIT")
       should_exit_program = True
+
     elif main_queue_value.find("TAG") == 1:
       split_string = main_queue_value.split()
       list_of_tags = split_string[1:]
       display_tag_id_gui_queue.put(list_of_tags)
       list_of_tags_to_upload.append(list_of_tags)
-
-
-
-    # a=Process(target=rand_num, args=(0,wq,rq1))
-    # b=Process(target=rand_num, args=(1,wq,rq2))
-    # c=Process(target=gps_proc, args=(2,wq,gpsq))
-    # d=Process(target=tagreader_proc,args=(3,wq,tagq))
-    # e=Process(target=gui_bk_proc,args=(4,wq,guibq))
-    # f=Process(target=upload_proc,args=(5,wq,uploadq))
-    # processes.append(a)
-    # processes.append(b)
-    # processes.append(c)
-    # processes.append(d)
-    # processes.append(e)
-    # processes.append(f)
-
-    # for p in processes:
-    #     p.start()
-
-    # cnt=1
-    # sent="end"
-    # tagstr=""
-    # gpsstr=""
-    # gpsdict={}
-    # tagdict={}
-    # while True:
-    #     try:
-    #         for p in processes:
-    #             if not wq.empty():
-    #                 rq=wq.get()
-    #                 print("ML Ret:",rq)
-    #             #     if rq == "TKFE_SCAN":
-    #             #         rq1.put("start")
-    #             #         rq2.put("start")
-    #             #         gpsq.put("start")
-    #             #         tagq.put("start")
-    #             #     elif rq == "TKFE_UPLOAD":
-    #             #         rq1.put("end")
-    #             #         rq2.put("end")
-    #             #         gpsq.put("end")
-    #             #         tagq.put("end")
-    #             #         updict=dict({"tags":uptlist,"gps":upglist})
-    #             #         uploadq.put(updict)
-    #             #     elif rq == "UP_SUCCESS":
-    #             #         guibq.put("Upload Sucess")
-    #             #     elif rq == "UP_FAIL":
-    #             #         guibq.put("Upload Failure")
-
-    #             #     if rq.find("TAG") == 0:
-    #             #         tagstr=rq
-    #             #         taglist=rq.split()
-    #             #         guibq.put(taglist[1])
-    #             #         uptlist=taglist[2:]
-    #             #     if rq.find("GPS") == 0:
-    #             #         gpsstr=rq
-    #             #         gpslist=rq.split()
-    #             #         upglist=gpslist[1:]
-
-    #         cnt+=1
-    #         time.sleep(1)
-    #     except Exception as inst:
-    #         sys.exit(1)
-    #         # print("Type",type(inst))    # the exception instance
-    #         # print("Args",inst.args)     # arguments stored in .args
-    #         # print("Inst",inst)
