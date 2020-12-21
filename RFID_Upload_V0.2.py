@@ -58,11 +58,12 @@ class TagReader(Process):
     self.main_queue = main_queue
     self.serial_device = None
     self.should_read_tags = False
+    self.send_back_tag_values = False
     self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
     self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
     self.string_of_tags = ""
 
-  def convert_tags_to_hex(self, send_back_tag_values: bool):
+  def convert_tags_to_hex(self):
     """
     This method is called to convert a list of bytes into one complete
     RFID tag
@@ -81,7 +82,7 @@ class TagReader(Process):
     if tag_hex_value not in self.tag_hex_list:
       self.tag_hex_list.append(tag_hex_value)
 
-    if send_back_tag_values is True and len(self.tag_hex_list) > 0:
+    if self.send_back_tag_values is True and len(self.tag_hex_list) > 0:
       self.string_of_tags = str(len(self.tag_hex_list)) + " "
       for tag_value in self.tag_hex_list:
         self.string_of_tags += tag_value + " "
@@ -104,13 +105,16 @@ class TagReader(Process):
     except serial.serialutil.SerialException as err:
       raise err
 
-    while True:
-      send_back_tag_values = False
-      input_queue_string = self.queue.get()
-      if input_queue_string == "SCAN":
-        send_back_tag_values = True
-      else:
-        send_back_tag_values = False
+    should_exit_loop = False
+
+    while should_exit_loop is False:
+
+      if self.queue.qsize() > 0:
+        input_queue_string = self.queue.get()
+        if input_queue_string == "SCAN":
+          print("Turning on SCAN")
+          self.send_back_tag_values = True
+          print(self.send_back_tag_values)
 
       read_bytes = self.serial_device.read()
       int_value = int.from_bytes(read_bytes, "big")
@@ -126,7 +130,7 @@ class TagReader(Process):
         # The assumption here is that one RFID tag has a sequence of 18 bytes
         if len(self.tag_bytes_list) == 18:
           self.should_read_tags = False
-          self.convert_tags_to_hex(send_back_tag_values)
+          self.convert_tags_to_hex()
           self.tag_bytes_list.clear() # Clear the bytes from the RFID tag read in preparation for the next one
 
   def run(self):
@@ -188,26 +192,28 @@ class DisplayTagIdGUI(Process):
       Raises a base Exception if a button that is neither scan nor upload
       is clicked
     """
-    if self.action_to_perform == "scan":
-      self.main_queue.put("scan")
-    elif self.action_to_perform == "upload":
-      self.main_queue.put("upload")
-    elif self.action_to_perform is None:
-      # Do nothing if its still default value
-      pass
-    else:
-      raise Exception('An undefined button was pressed')
+    # if self.action_to_perform == "scan":
+    #   self.main_queue.put("scan")
+    # elif self.action_to_perform == "upload":
+    #   self.main_queue.put("upload")
+    # elif self.action_to_perform is None:
+    #   # Do nothing if its still default value
+    #   pass
+    # else:
+    #   raise Exception('An undefined button was pressed')
 
-    try:
-      self.canvas.delete("text_to_be_shown")
-    except Exception as err:
-      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
-      print(err)
+    # try:
+    #   self.canvas.delete("text_to_be_shown")
+    #   self.root.update()  
+    # except Exception as err:
+    #   print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+    #   print(err)
 
-    input_value = self.queue.get()
-    self.canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
-                                  font="Helvetic 80 bold", text=str(input_value), tag="text_to_be_shown")
-    self.root.update()
+    if not self.queue.empty():
+      input_value = self.queue.get()
+      self.canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
+                                    font="Helvetic 80 bold", text=str(input_value), tag="text_to_be_shown")
+      self.root.update()
 
   def run(self):
     """
@@ -283,7 +289,7 @@ def get_latitude_and_longitude(gps_child_queue):
   time_end = time.time() + 5
 
   # Read from the GPS device for 30 seconds
-  serial_device = serial.Serial('/dev/S0', 9600, timeout=1)
+  serial_device = serial.Serial('/dev/ttyS0', 9600, timeout=1)
   while time.time() < time_end:
     x = serial_device.readline()
     y = x[:-2].decode('utf-8')
@@ -292,7 +298,7 @@ def get_latitude_and_longitude(gps_child_queue):
       latitude = message.latitude
       longitude = message.longitude
 
-  gps_child_queue.put({ latitude: latitude, longitude: longitude })
+  gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
 
   #   Use this for testing
   # while time.time() < time_end:
@@ -302,6 +308,7 @@ def get_latitude_and_longitude(gps_child_queue):
 
 
 def get_location(location_object):
+  print(location_object)
   try:
     api_request = MakeApiRequest('/service/validate/locations')
     payload = {
@@ -398,9 +405,11 @@ if __name__ == "__main__":
   while should_exit_program is False:
     main_queue_value = main_queue.get()
     if main_queue_value == "SCAN":
+      print("SCAN")
       read_tags_queue.put("SCAN")
 
     elif main_queue_value == "UPLOAD":
+      print("UPLOAD")
       upload_tags_queue.put(list_of_tags_to_upload)
 
     elif main_queue_value == "UPLOAD_SUCCESS":
@@ -410,6 +419,7 @@ if __name__ == "__main__":
       display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
     elif main_queue_value == "QUIT":
+      read_tags_queue.put("QUIT")
       upload_tags_queue.put("QUIT")
       should_exit_program = True
 
