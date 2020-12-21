@@ -202,6 +202,7 @@ class DisplayTagIdGUI(Process):
       self.canvas.delete("text_to_be_shown")
     except Exception as err:
       print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+      print(err)
 
     input_value = self.queue.get()
     self.canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
@@ -282,22 +283,22 @@ def get_latitude_and_longitude(gps_child_queue):
   time_end = time.time() + 5
 
   # Read from the GPS device for 30 seconds
-  # serial_device = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-  # while time.time() < time_end:
-  #   x = serial_device.readline()
-  #   y = x[:-2].decode('utf-8')
-  #   if y.find("RMC") > 0:
-  #     message = pynmea2.parse(str(y))
-  #     latitude = message.latitude
-  #     longitude = message.longitude
+  serial_device = serial.Serial('/dev/S0', 9600, timeout=1)
+  while time.time() < time_end:
+    x = serial_device.readline()
+    y = x[:-2].decode('utf-8')
+    if y.find("RMC") > 0:
+      message = pynmea2.parse(str(y))
+      latitude = message.latitude
+      longitude = message.longitude
 
-  # gps_child_queue.put({ latitude: latitude, longitude: longitude })
+  gps_child_queue.put({ latitude: latitude, longitude: longitude })
 
   #   Use this for testing
-  while time.time() < time_end:
-    latitude = 13.02518000
-    longitude = 77.63192000
-  gps_child_queue.put({'latitude': latitude, 'longitude': longitude})
+  # while time.time() < time_end:
+  #   latitude = 13.02518000
+  #   longitude = 77.63192000
+  # gps_child_queue.put({'latitude': latitude, 'longitude': longitude})
 
 
 def get_location(location_object):
