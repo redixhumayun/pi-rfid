@@ -19,26 +19,28 @@ def upload_tags(queue, main_queue):
 
   should_exit_loop = False
   while should_exit_loop is False:
-    main_queue_value = main_queue.get()
-    if main_queue_value == "QUIT":
-      should_exit_loop = True
-    list_of_tags_to_upload: list = queue.get()
-    if len(list_of_tags_to_upload) > 0:
-      dirname = path.dirname(__file__)
-      filename = path.join(dirname, 'location.txt')
-      try:
-        with open(filename, 'r') as f:
-          location = f.readline()
-      except FileNotFoundError as err:
-        raise err
-      try:
-        response = api_request.post({ 'location': location, 'epc': list_of_tags_to_upload })
-        response.raise_for_status()
-        if response.status_code == 200:
-          main_queue.put("UPLOAD_SUCCESS")
-      except requests.exceptions.HTTPError as err:
-        print(err)
-        main_queue.put("UPLOAD_FAIL")
+    if main_queue.qsize() > 0:
+      main_queue_value = main_queue.get()
+      if main_queue_value == "QUIT":
+        should_exit_loop = True
+    if queue.qsize() > 0:  
+      list_of_tags_to_upload: list = queue.get()
+      if len(list_of_tags_to_upload) > 0:
+        dirname = path.dirname(__file__)
+        filename = path.join(dirname, 'location.txt')
+        try:
+          with open(filename, 'r') as f:
+            location = f.readline()
+        except FileNotFoundError as err:
+          raise err
+        try:
+          response = api_request.post({ 'location': location, 'epc': list_of_tags_to_upload })
+          response.raise_for_status()
+          if response.status_code == 200:
+            main_queue.put("UPLOAD_SUCCESS")
+        except requests.exceptions.HTTPError as err:
+          print(err)
+          main_queue.put("UPLOAD_FAIL")
 
 
 class TagReader(Process):
@@ -101,7 +103,7 @@ class TagReader(Process):
       If the USB device is not connected properly and cannot be read from
     """
     try:
-      self.serial_device = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+      self.serial_device = serial.Serial('/dev/ttyUSB1', 57600, timeout=0.5)
     except serial.serialutil.SerialException as err:
       raise err
 
@@ -112,9 +114,9 @@ class TagReader(Process):
       if self.queue.qsize() > 0:
         input_queue_string = self.queue.get()
         if input_queue_string == "SCAN":
-          print("Turning on SCAN")
           self.send_back_tag_values = True
-          print(self.send_back_tag_values)
+        if input_queue_string == "QUIT":
+          should_exit_loop = True
 
       read_bytes = self.serial_device.read()
       int_value = int.from_bytes(read_bytes, "big")
@@ -209,11 +211,16 @@ class DisplayTagIdGUI(Process):
     #   print("Cannot clear canvas probably because there is nothing on the canvas to clear")
     #   print(err)
 
-    if not self.queue.empty():
+    if self.queue.qsize() > 0:
       input_value = self.queue.get()
-      self.canvas.create_text(320, 200, fill="Black", anchor=tk.NW,
-                                    font="Helvetic 80 bold", text=str(input_value), tag="text_to_be_shown")
+      print(input_value)
+      string_to_display = ""
+      for value in input_value:
+        string_to_display += value + "\n"
+      self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+                                    font="Helvetic 20 bold", text=string_to_display, tag="text_to_be_shown")
       self.root.update()
+    self.root.after(300, self.run_loop)
 
   def run(self):
     """
@@ -240,10 +247,10 @@ class SelectLocationGUI(Process):
   and allow the user to select a location
   """
 
-  def __init__(self, queue: list):
+  def __init__(self, queue: list, main_queue: list):
     Process.__init__(self)
-    print(queue)
     self.queue = queue
+    self.main_queue = main_queue
     self.possible_locations = None
     self.buttons = {}
 
@@ -262,6 +269,7 @@ class SelectLocationGUI(Process):
     with open(filename, 'w+') as f:
       f.write(location)
     self.root.destroy()
+    self.main_queue.put("LOCATION_PICKED")
 
   def run(self):
     """
@@ -286,7 +294,7 @@ class SelectLocationGUI(Process):
 # and fetch the latitude and longitude
 
 def get_latitude_and_longitude(gps_child_queue):
-  time_end = time.time() + 5
+  time_end = time.time() + 10
 
   # Read from the GPS device for 30 seconds
   serial_device = serial.Serial('/dev/ttyS0', 9600, timeout=1)
@@ -349,9 +357,14 @@ if __name__ == "__main__":
   # Define a list to hold all the process references
   processes: list = []
 
+  # Create the main queue that will be used for parent child communication
+  main_queue = Queue()
+
   # Start GPS process and allow user to select location only if
   # locatio has not already been set
   if should_check_location is True:
+    # Create a boolean to check if the location has been picked by the user
+    has_location_been_picked = False
 
     # Create the GUI and associated queue to fetch lat & long using GPS device
     gps_queue = Queue()
@@ -360,7 +373,7 @@ if __name__ == "__main__":
 
     # Create the GUI and associated queue to allow the user to select the location
     select_location_gui_queue = Queue()
-    select_location_gui_process = SelectLocationGUI(select_location_gui_queue)
+    select_location_gui_process = SelectLocationGUI(select_location_gui_queue, main_queue)
 
     processes.append(gps_process)
     processes.append(select_location_gui_process)
@@ -374,11 +387,14 @@ if __name__ == "__main__":
     possible_locations = get_location(location_data)
     select_location_gui_queue.put(possible_locations)
 
+    # Keep looping until a location is picked
+    while has_location_been_picked is False:
+      main_queue_value = main_queue.get()
+      if main_queue_value == "LOCATION_PICKED":
+        has_location_been_picked = True
+
     # Clear the process list
     processes.clear()
-
-  # Create the main queue that will be used for parent child communication
-  main_queue = Queue()
 
   # Create the GUI and associated queue to allow the user to view the scanned tags
   display_tag_id_gui_queue = Queue()
@@ -403,28 +419,29 @@ if __name__ == "__main__":
   list_of_tags_to_upload = []
 
   while should_exit_program is False:
-    main_queue_value = main_queue.get()
-    if main_queue_value == "SCAN":
-      print("SCAN")
-      read_tags_queue.put("SCAN")
+    if main_queue.qsize() > 0:
+      main_queue_value = main_queue.get()
+      if main_queue_value == "SCAN":
+        print("SCAN")
+        read_tags_queue.put("SCAN")
 
-    elif main_queue_value == "UPLOAD":
-      print("UPLOAD")
-      upload_tags_queue.put(list_of_tags_to_upload)
+      elif main_queue_value == "UPLOAD":
+        print("UPLOAD")
+        upload_tags_queue.put(list_of_tags_to_upload)
 
-    elif main_queue_value == "UPLOAD_SUCCESS":
-      display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
-    
-    elif main_queue_value == "UPLOAD_FAIL":
-      display_tag_id_gui_queue.put("UPLOAD_FAIL")
+      elif main_queue_value == "UPLOAD_SUCCESS":
+        display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
+      
+      elif main_queue_value == "UPLOAD_FAIL":
+        display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
-    elif main_queue_value == "QUIT":
-      read_tags_queue.put("QUIT")
-      upload_tags_queue.put("QUIT")
-      should_exit_program = True
+      elif main_queue_value == "QUIT":
+        read_tags_queue.put("QUIT")
+        upload_tags_queue.put("QUIT")
+        should_exit_program = True
 
-    elif main_queue_value.find("TAG") == 1:
-      split_string = main_queue_value.split()
-      list_of_tags = split_string[1:]
-      display_tag_id_gui_queue.put(list_of_tags)
-      list_of_tags_to_upload.append(list_of_tags)
+      elif main_queue_value.find("TAG") != -1 and main_queue_value.find("TAG") == 0:
+        split_string = main_queue_value.split()
+        list_of_tags = split_string[1:]
+        display_tag_id_gui_queue.put(list_of_tags)
+        list_of_tags_to_upload.append(list_of_tags)
