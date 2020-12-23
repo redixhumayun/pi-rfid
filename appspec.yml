@@ -3,20 +3,25 @@ os: linux
 files:
   - source: /
     destination:  /home/pi/pi-rfid
+permissions:
+  - object: /
+    pattern: "**"
+    owner: pi
+    group: pi
 hooks:
   ApplicationStop:
     - location: scripts/ApplicationStop.sh
       timeout:  300
-      runas:  root
+      runas:  pi
   BeforeInstall:
     - location: scripts/BeforeInstall.sh
       timeout:  300
-      runas:  root
+      runas:  pi
   AfterInstall:
     - location: scripts/AfterInstall.sh
       timeout:  300
-      runas:  root
+      runas:  pi
   ApplicationStart:
     - location: scripts/ApplicationStart.sh
       timeout:  300
-      runas:  root
+      runas:  pi
