@@ -123,6 +123,8 @@ class TagReader(Process):
 
     while should_exit_loop is False:
 
+      # Check if the queue has any elements in it
+      # Do this because queue.get() is a blocking call
       if self.queue.qsize() > 0:
         input_queue_string = self.queue.get()
         if input_queue_string == "SCAN":
@@ -134,14 +136,14 @@ class TagReader(Process):
       int_value = int.from_bytes(read_bytes, "big")
       sys.stdout.flush()
 
-      # The assumption here is that the starting byte of any tag id is 0x11 (which is 17)
+      # The starting byte of any tag id is 0x11 (which is 17)
       if int_value == 0x11:
         self.should_read_tags = True
       
       if self.should_read_tags is True:
         self.tag_bytes_list.append(int_value)
 
-        # The assumption here is that one RFID tag has a sequence of 18 bytes
+        # One RFID tag has a sequence of 18 bytes
         if len(self.tag_bytes_list) == 18:
           self.should_read_tags = False
           self.convert_tags_to_hex()
@@ -206,16 +208,6 @@ class DisplayTagIdGUI(Process):
       Raises a base Exception if a button that is neither scan nor upload
       is clicked
     """
-    # if self.action_to_perform == "scan":
-    #   self.main_queue.put("scan")
-    # elif self.action_to_perform == "upload":
-    #   self.main_queue.put("upload")
-    # elif self.action_to_perform is None:
-    #   # Do nothing if its still default value
-    #   pass
-    # else:
-    #   raise Exception('An undefined button was pressed')
-
     # try:
     #   self.canvas.delete("text_to_be_shown")
     #   self.root.update()  
@@ -223,9 +215,17 @@ class DisplayTagIdGUI(Process):
     #   print("Cannot clear canvas probably because there is nothing on the canvas to clear")
     #   print(err)
 
+    try:
+      self.canvas.delete("text_to_be_shown")
+      self.root.update()
+    except Exception as err:
+      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+      print(err)
+
+    # Check if the queue has any elements in it
+    # Do this because queue.get() is a blocking call
     if self.queue.qsize() > 0:
       input_value = self.queue.get()
-      print(input_value)
       string_to_display = ""
       for value in input_value:
         string_to_display += value + "\n"
