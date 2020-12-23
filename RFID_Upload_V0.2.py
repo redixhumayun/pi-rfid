@@ -249,11 +249,13 @@ class DisplayTagIdGUI(Process):
       # Check if the scan button has been clicked
       if input_value == "SCAN":
         self.clear_canvas()
+
       elif input_value == "UPLOAD_SUCCESS":
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
         self.root.update()
+        
       elif input_value == "UPLOAD_FAIL":
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
