@@ -65,6 +65,18 @@ class TagReader(Process):
     A multiprocessing queue that is used by the main process to send instructions to this process
   main_queue: Queue
     A multiprocessing queue that is used by this process to communicate information back to the main process
+  serial_device: Object
+    The serial device port that will be read from will be stored in this variable
+  should_read_tags: Boolean
+    This variable is used to determine when this process should start reading tags
+  should_send_back_tag_values: Boolean
+    This variable is used to determine when this process will send tags read back to the main process
+  tag_bytes_list: List
+    This will be used to store all the bytes belonging to one RFID tag
+  tag_hex_list: List
+    This will be used to store the hex value of a specific RFID tag
+  string_of_tags: String
+    This will store all the tag values read during a given session
   """
   def __init__(self, queue: Queue, main_queue: Queue):
     Process.__init__(self)
@@ -72,22 +84,34 @@ class TagReader(Process):
     self.main_queue = main_queue
     self.serial_device = None
     self.should_read_tags = False
-    self.send_back_tag_values = False
+    self.should_send_back_tag_values = False
     self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
     self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
+    self.string_of_tags = ""
+
+  def send_tags_to_main_process(self):
+    """
+    This method is called to return the list of tags to the main process
+    """
+    self.string_of_tags = str(len(self.tag_hex_list)) + " "
+    for tag_value in self.tag_hex_list:
+      self.string_of_tags += tag_value + " "
+    
+    self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
 
   def convert_tags_to_hex(self):
     """
     This method is called to convert a list of bytes into one complete
     RFID tag
-
-    Parameters
-    ----------
-    send_back_tag_values: boolean
-      A boolean value taht will determine whether the tag values need to be sent back to the main queue
     """
+
+    # Stores the hex value of the RFID tag being read
     tag_hex_value = ""
+
+    # Use this to allow scanning for atleast 5 seconds after pressing the scan button
+    end_time = time.time() + 5
+
     for index, bytes_value in enumerate(self.tag_bytes_list):
       # The assumption here is that the first 3 bytes and the last byte are just placeholders
       if index > 3 and index < 16:
@@ -96,13 +120,8 @@ class TagReader(Process):
     if tag_hex_value not in self.tag_hex_list:
       self.tag_hex_list.append(tag_hex_value)
 
-    if self.send_back_tag_values is True and len(self.tag_hex_list) > 0:
-      self.string_of_tags = str(len(self.tag_hex_list)) + " "
-      for tag_value in self.tag_hex_list:
-        self.string_of_tags += tag_value + " "
-      
-      self.main_queue.put("TAGS: " + self.string_of_tags)
-      self.string_of_tags = ""
+    if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and end_time > time.time():
+      self.send_tags_to_main_process()
 
   def read_tag_bytes(self):
     """
@@ -128,7 +147,9 @@ class TagReader(Process):
       if self.queue.qsize() > 0:
         input_queue_string = self.queue.get()
         if input_queue_string == "SCAN":
-          self.send_back_tag_values = True
+          # When the user clicks the scan button, clear any previously scanned RFID's
+          self.should_send_back_tag_values = True
+          self.tag_hex_list.clear()
         if input_queue_string == "QUIT":
           should_exit_loop = True
 
@@ -208,13 +229,7 @@ class DisplayTagIdGUI(Process):
       Raises a base Exception if a button that is neither scan nor upload
       is clicked
     """
-    # try:
-    #   self.canvas.delete("text_to_be_shown")
-    #   self.root.update()  
-    # except Exception as err:
-    #   print("Cannot clear canvas probably because there is nothing on the canvas to clear")
-    #   print(err)
-
+    # Delete any text that might be present on the canvas already
     try:
       self.canvas.delete("text_to_be_shown")
       self.root.update()
@@ -226,12 +241,24 @@ class DisplayTagIdGUI(Process):
     # Do this because queue.get() is a blocking call
     if self.queue.qsize() > 0:
       input_value = self.queue.get()
-      string_to_display = ""
-      for value in input_value:
-        string_to_display += value + "\n"
-      self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                    font="Helvetic 20 bold", text=string_to_display, tag="text_to_be_shown")
-      self.root.update()
+
+      # Check if the scan button has been clicked
+      if input_value == "SCAN":
+        try:
+          self.canvas.delete("text_to_be_shown")
+          self.root.update()
+        except Exception as err:
+          print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+          print(err)
+      
+      # If the value is not scan, then it must be the list of tags to display
+      else:
+        string_to_display = ""
+        for value in input_value:
+          string_to_display += value + "\n"
+        self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+                                      font="Helvetic 20 bold", text=string_to_display, tag="text_to_be_shown")
+        self.root.update()
     self.root.after(300, self.run_loop)
 
   def run(self):
@@ -306,6 +333,7 @@ class SelectLocationGUI(Process):
 # and fetch the latitude and longitude
 
 def get_latitude_and_longitude(gps_child_queue):
+  # Run for at least this many number of seconds
   time_end = time.time() + 10
 
   # Read from the GPS device for 30 seconds
@@ -435,6 +463,7 @@ if __name__ == "__main__":
       main_queue_value = main_queue.get()
       if main_queue_value == "SCAN":
         print("SCAN")
+        display_tag_id_gui_queue.put("SCAN")
         read_tags_queue.put("SCAN")
 
       elif main_queue_value == "UPLOAD":
