@@ -218,6 +218,17 @@ class DisplayTagIdGUI(Process):
       self.main_queue.put("QUIT")
       self.root.destroy()
 
+  def clear_canvas(self):
+    """
+    This method is used to clear the canvas
+    """
+    try:
+      self.canvas.delete("text_to_be_shown")
+      self.root.update()
+    except Exception as err:
+      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
+      print(err)
+
   def run_loop(self):
     """
     This method is used to run a loop every 900ms and is called
@@ -229,13 +240,6 @@ class DisplayTagIdGUI(Process):
       Raises a base Exception if a button that is neither scan nor upload
       is clicked
     """
-    # Delete any text that might be present on the canvas already
-    try:
-      self.canvas.delete("text_to_be_shown")
-      self.root.update()
-    except Exception as err:
-      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
-      print(err)
 
     # Check if the queue has any elements in it
     # Do this because queue.get() is a blocking call
@@ -244,20 +248,25 @@ class DisplayTagIdGUI(Process):
 
       # Check if the scan button has been clicked
       if input_value == "SCAN":
-        try:
-          self.canvas.delete("text_to_be_shown")
-          self.root.update()
-        except Exception as err:
-          print("Cannot clear canvas probably because there is nothing on the canvas to clear")
-          print(err)
+        self.clear_canvas()
+      elif input_value == "UPLOAD_SUCCESS":
+        self.clear_canvas()
+        self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+                                      font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
+        self.root.update()
+      elif input_value == "UPLOAD_FAIL":
+        self.clear_canvas()
+        self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+                                      font="Helvetica 20 bold", text="UPLOAD FAILED", tag="text_to_be_shown")
+        self.root.update()
       
-      # If the value is not scan, then it must be the list of tags to display
+      # If the value is none of the above, then it must be the list of tags to display
       else:
         string_to_display = ""
         for value in input_value:
           string_to_display += value + "\n"
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                      font="Helvetic 20 bold", text=string_to_display, tag="text_to_be_shown")
+                                      font="Helvetica 20 bold", text=string_to_display, tag="text_to_be_shown")
         self.root.update()
     self.root.after(300, self.run_loop)
 
