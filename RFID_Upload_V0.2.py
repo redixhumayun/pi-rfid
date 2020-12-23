@@ -11,21 +11,32 @@ from tkinter import ttk, messagebox
 
 from make_api_request import MakeApiRequest
 
-def upload_tags(queue, main_queue):
+def upload_tags(queue: list, main_queue: list):
   """
   This function will be used to run the upload process
   """
   api_request = MakeApiRequest('/fabship/product/rfid/epc')
 
+  # Use this variable to determine when to break out of a loop
   should_exit_loop = False
+
+
   while should_exit_loop is False:
+    # Always check if the queue has elements in it.
+    # Do this because queue.get() is a blocking operation
     if main_queue.qsize() > 0:
       main_queue_value = main_queue.get()
       if main_queue_value == "QUIT":
         should_exit_loop = True
-    if queue.qsize() > 0:  
+
+    # Always check if the queue has elements in it
+    if queue.qsize() > 0:
       list_of_tags_to_upload: list = queue.get()
+
+      # The list of tags should have values
       if len(list_of_tags_to_upload) > 0:
+
+        # Read the location from the relevant file
         dirname = path.dirname(__file__)
         filename = path.join(dirname, 'location.txt')
         try:
@@ -33,13 +44,14 @@ def upload_tags(queue, main_queue):
             location = f.readline()
         except FileNotFoundError as err:
           raise err
+
+        # Make the API request
         try:
           response = api_request.post({ 'location': location, 'epc': list_of_tags_to_upload })
           response.raise_for_status()
           if response.status_code == 200:
             main_queue.put("UPLOAD_SUCCESS")
         except requests.exceptions.HTTPError as err:
-          print(err)
           main_queue.put("UPLOAD_FAIL")
 
 
