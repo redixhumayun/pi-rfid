@@ -367,7 +367,6 @@ def get_latitude_and_longitude(gps_child_queue):
 
 
 def get_location(location_object):
-  print(location_object)
   try:
     api_request = MakeApiRequest('/service/validate/locations')
     payload = {
@@ -488,11 +487,12 @@ if __name__ == "__main__":
         display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
       elif main_queue_value == "QUIT":
+        print("QUIT")
         read_tags_queue.put("QUIT")
         upload_tags_queue.put("QUIT")
         should_exit_program = True
 
-      elif main_queue_value.find("TAG") != -1 and main_queue_value.find("TAG") == 0:
+      elif main_queue_value.find("TAG") != -1:
         split_string = main_queue_value.split()
         list_of_tags = split_string[1:]
         display_tag_id_gui_queue.put(list_of_tags)
