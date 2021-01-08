@@ -1,19 +1,18 @@
 #!/usr/bin/python3
-import multiprocessing
 from os import path
 from multiprocessing import Process, Queue
 import time
 import serial
-import pynmea2
 import sys
 import requests
 import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
 
+from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
 
-def upload_tags(queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+def upload_tags(queue: Queue, main_queue: Queue):
   """
   This function will be used to run the upload process
   """
@@ -56,7 +55,7 @@ def upload_tags(queue: multiprocessing.Queue, main_queue: multiprocessing.Queue)
         except requests.exceptions.HTTPError as err:
           main_queue.put("UPLOAD_FAIL")
 
-def random_number_generator(queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+def random_number_generator(queue: Queue, main_queue: Queue):
   return_string = "TAGS:"
   while True:
     random_number: float = random()
@@ -91,7 +90,7 @@ class TagReader(Process):
   string_of_tags: String
     This will store all the tag values read during a given session
   """
-  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+  def __init__(self, queue: Queue, main_queue: Queue):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
@@ -220,7 +219,7 @@ class DisplayTagIdGUI(Process):
   are being read from the USB device
   """
 
-  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+  def __init__(self, queue: Queue, main_queue: Queue):
     """
     Parameters
     ----------
@@ -334,7 +333,7 @@ class SelectLocationGUI(Process):
   and allow the user to select a location
   """
 
-  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+  def __init__(self, queue: Queue, main_queue: Queue):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
@@ -375,44 +374,6 @@ class SelectLocationGUI(Process):
           self.root, text=location, command=lambda loc=location: self.command(loc))
       self.buttons[key].pack(side=tk.TOP)
     tk.mainloop()
-
-
-# This function is used to call the GPS device attached via USB
-# and fetch the latitude and longitude
-
-def get_latitude_and_longitude(gps_child_queue):
-  # Run for at least this many number of seconds
-  time_end = time.time() + 10
-
-  # Read from the GPS device for 30 seconds
-  serial_device = serial.Serial('/dev/ttyS0', 9600, timeout=1)
-  while time.time() < time_end:
-    x = serial_device.readline()
-    y = x[:-2].decode('utf-8')
-    if y.find("RMC") > 0:
-      message = pynmea2.parse(str(y))
-      latitude = message.latitude
-      longitude = message.longitude
-
-  gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
-
-  #   Use this for testing
-  # while time.time() < time_end:
-  #   latitude = 13.02518000
-  #   longitude = 77.63192000
-  # gps_child_queue.put({'latitude': latitude, 'longitude': longitude})
-
-
-def get_location(location_object):
-  try:
-    api_request = MakeApiRequest('/service/validate/locations')
-    payload = {
-        'latitude': location_object['latitude'], 'longitude': location_object['longitude']}
-    response = api_request.get(payload)
-    return response
-  except Exception as err:
-    print("Sorry, there was an error while fetching the location. Please try again")
-    print(err)
 
 
 if __name__ == "__main__":
@@ -531,7 +492,7 @@ if __name__ == "__main__":
         upload_tags_queue.put("QUIT")
         should_exit_program = True
 
-      elif main_queue_value.find("TAG") != -1:
+      elif main_queue_value.find("TAGS") != -1:
         print("RECEIVED TAG VALUES IN MAIN PROCESS")
         split_string = main_queue_value.split()
         list_of_tags = split_string[1:]
