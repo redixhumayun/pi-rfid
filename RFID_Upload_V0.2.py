@@ -82,7 +82,8 @@ class TagReader(Process):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
-    self.serial_device = None
+    self.serial_device_1 = None
+    self.serial_device_2 = None
     self.should_read_tags = False
     self.should_send_back_tag_values = False
     self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
@@ -100,7 +101,7 @@ class TagReader(Process):
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
 
-  def convert_tags_to_hex(self):
+  def convert_tags_to_hex(self, tag_bytes_list):
     """
     This method is called to convert a list of bytes into one complete
     RFID tag
@@ -112,7 +113,7 @@ class TagReader(Process):
     # Use this to allow scanning for atleast 5 seconds after pressing the scan button
     end_time = time.time() + 5
 
-    for index, bytes_value in enumerate(self.tag_bytes_list):
+    for index, bytes_value in enumerate(tag_bytes_list):
       # The assumption here is that the first 3 bytes and the last byte are just placeholders
       if index > 3 and index < 16:
         tag_hex_value += "{0:02X}".format(bytes_value)
@@ -134,11 +135,18 @@ class TagReader(Process):
       If the USB device is not connected properly and cannot be read from
     """
     try:
-      self.serial_device = serial.Serial('/dev/ttyUSB1', 57600, timeout=0.5)
+      self.serial_device_1 = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
+      self.serial_device_2 = serial.Serial('/dev/ttyUSB1', 57600, timeout=0.5)
     except serial.serialutil.SerialException as err:
       raise err
 
     should_exit_loop = False
+
+    should_read_tags_from_device_1 = False
+    should_read_tags_from_device_2 = False
+
+    tag_bytes_list_for_device_1 = []
+    tag_bytes_list_for_device_2 = []
 
     while should_exit_loop is False:
 
@@ -153,22 +161,39 @@ class TagReader(Process):
         if input_queue_string == "QUIT":
           should_exit_loop = True
 
-      read_bytes = self.serial_device.read()
-      int_value = int.from_bytes(read_bytes, "big")
+      read_bytes_from_device_1 = self.serial_device_1.read()
+      int_value_from_device_1 = int.from_bytes(read_bytes_from_device_1, "big")
+
+      read_bytes_from_device_2 = self.serial_device_2.read()
+      int_value_from_device_2 = int.from_bytes(read_bytes_from_device_2, "big")
+
       sys.stdout.flush()
 
       # The starting byte of any tag id is 0x11 (which is 17)
-      if int_value == 0x11:
-        self.should_read_tags = True
+      if int_value_from_device_1 == 0x11:
+        should_read_tags_from_device_1 = True
       
-      if self.should_read_tags is True:
-        self.tag_bytes_list.append(int_value)
+      if should_read_tags_from_device_1 is True:
+        tag_bytes_list_for_device_1.append(int_value_from_device_1)
 
         # One RFID tag has a sequence of 18 bytes
-        if len(self.tag_bytes_list) == 18:
-          self.should_read_tags = False
-          self.convert_tags_to_hex()
-          self.tag_bytes_list.clear() # Clear the bytes from the RFID tag read in preparation for the next one
+        if len(tag_bytes_list_for_device_1) == 18:
+          should_read_tags_from_device_1 = False
+          self.convert_tags_to_hex(tag_bytes_list = tag_bytes_list_for_device_1)
+          tag_bytes_list_for_device_1.clear() # Clear the bytes from the RFID tag read in preparation for the next one
+
+      # The starting byte of any tag id is 0x11 (which is 17)
+      if int_value_from_device_2 == 0x11:
+        should_read_tags_from_device_2 = True
+
+      if should_read_tags_from_device_2 is True:
+        tag_bytes_list_for_device_2.append(int_value_from_device_2)
+      
+        # One RFID tag has a sequence of 18 bytes
+        if len(tag_bytes_list_for_device_2) == 18:
+          should_read_tags_from_device_2 = False
+          self.convert_tags_to_hex(tag_bytes_list = tag_bytes_list_for_device_2)
+          tag_bytes_list_for_device_2.clear() # Clear the bytes from the RFID tag read in preparation for the next one
 
   def run(self):
     """
@@ -481,9 +506,11 @@ if __name__ == "__main__":
         upload_tags_queue.put(list_of_tags_to_upload)
 
       elif main_queue_value == "UPLOAD_SUCCESS":
+        print("UPLOAD SUCCESSFUL")
         display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
       
       elif main_queue_value == "UPLOAD_FAIL":
+        print("UPLOAD_FAIL")
         display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
       elif main_queue_value == "QUIT":
@@ -493,6 +520,7 @@ if __name__ == "__main__":
         should_exit_program = True
 
       elif main_queue_value.find("TAG") != -1:
+        print("RECEIVED TAG VALUES IN MAIN PROCESS")
         split_string = main_queue_value.split()
         list_of_tags = split_string[1:]
         display_tag_id_gui_queue.put(list_of_tags)
