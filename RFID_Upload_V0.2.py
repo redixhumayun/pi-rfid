@@ -1,9 +1,10 @@
 #!/usr/bin/python3
-from os import path
+from os import environ, path
 from multiprocessing import Process, Queue
 import time
 import serial
 import sys
+import argparse
 import requests
 import tkinter as tk
 from random import random
@@ -11,6 +12,7 @@ from tkinter import ttk, messagebox
 
 from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
+from environment_variable import EnvironmentVariable
 
 def upload_tags(queue: Queue, main_queue: Queue):
   """
@@ -387,6 +389,13 @@ if __name__ == "__main__":
   The main queue is used by the child process to communicate to the main queue.
   """
 
+  # Create the argument parser
+  parser = argparse.ArgumentParser(description='Start the RFID process in either dev or prod mode')
+  parser.add_argument('--env', action='store', type=str, dest='environment')
+
+  # Parse the environment from command line
+  environment = parser.parse_args().environment
+  print(environment)
 
   # This variable will determine whether the location should be checked or not
   should_check_location = False
@@ -417,7 +426,7 @@ if __name__ == "__main__":
     # Create the GUI and associated queue to fetch lat & long using GPS device
     gps_queue = Queue()
     gps_process = Process(
-        target=get_latitude_and_longitude, args=(gps_queue,))
+        target=get_latitude_and_longitude, args=(gps_queue, environment,))
 
     # Create the GUI and associated queue to allow the user to select the location
     select_location_gui_queue = Queue()
@@ -452,7 +461,19 @@ if __name__ == "__main__":
   # Create the process associated with reading tags
   read_tags_queue = Queue()
   read_tags_process = TagReader(read_tags_queue, main_queue)
-  processes.append(read_tags_process)
+  processes.append(read_tags_process) 
+
+  # Decide based on the environment variable passed in which process to launch
+  if environment == EnvironmentVariable.PRODUCTION.value:
+    read_tags_queue = Queue()
+    read_tags_process = TagReader(read_tags_queue, main_queue)
+    processes.append(read_tags_process)
+  elif environment == EnvironmentVariable.DEVELOPMENT.value:
+    read_tags_queue = Queue()
+    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue,))
+    processes.append(read_tags_process)
+  else:
+    raise Exception('Unknown input for --env argument')
 
   # Create the queue and process associated with uploading tags
   upload_tags_queue = Queue()
