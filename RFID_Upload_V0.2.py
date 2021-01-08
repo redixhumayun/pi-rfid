@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import multiprocessing
 from os import path
 from multiprocessing import Process, Queue
 import time
@@ -7,11 +8,12 @@ import pynmea2
 import sys
 import requests
 import tkinter as tk
+from random import random
 from tkinter import ttk, messagebox
 
 from make_api_request import MakeApiRequest
 
-def upload_tags(queue: list, main_queue: list):
+def upload_tags(queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
   """
   This function will be used to run the upload process
   """
@@ -54,6 +56,17 @@ def upload_tags(queue: list, main_queue: list):
         except requests.exceptions.HTTPError as err:
           main_queue.put("UPLOAD_FAIL")
 
+def random_number_generator(queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
+  return_string = "TAGS:"
+  while True:
+    random_number: float = random()
+    return_string += f" {str(random_number)}"
+    if queue.qsize() > 0:
+      queue_value: str = queue.get()
+      if queue_value == "SCAN":
+        main_queue.put(return_string)
+        return_string = "TAGS:"
+    time.sleep(1)
 
 class TagReader(Process):
   """
@@ -78,13 +91,12 @@ class TagReader(Process):
   string_of_tags: String
     This will store all the tag values read during a given session
   """
-  def __init__(self, queue: Queue, main_queue: Queue):
+  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
     self.serial_device_1 = None
     self.serial_device_2 = None
-    self.should_read_tags = False
     self.should_send_back_tag_values = False
     self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
     self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
@@ -208,7 +220,7 @@ class DisplayTagIdGUI(Process):
   are being read from the USB device
   """
 
-  def __init__(self, queue: list, main_queue: list):
+  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
     """
     Parameters
     ----------
@@ -322,7 +334,7 @@ class SelectLocationGUI(Process):
   and allow the user to select a location
   """
 
-  def __init__(self, queue: list, main_queue: list):
+  def __init__(self, queue: multiprocessing.Queue, main_queue: multiprocessing.Queue):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
