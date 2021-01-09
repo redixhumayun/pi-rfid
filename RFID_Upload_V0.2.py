@@ -18,26 +18,23 @@ def upload_tags(queue: Queue, main_queue: Queue):
   """
   This function will be used to run the upload process
   """
-  api_request = MakeApiRequest('/fabship/product/rfid/epc')
+  api_request = MakeApiRequest('/fabship/product/rfid')
 
   # Use this variable to determine when to break out of a loop
   should_exit_loop = False
 
 
   while should_exit_loop is False:
-    # Always check if the queue has elements in it.
-    # Do this because queue.get() is a blocking operation
-    if main_queue.qsize() > 0:
-      main_queue_value = main_queue.get()
-      if main_queue_value == "QUIT":
-        should_exit_loop = True
-
     # Always check if the queue has elements in it
     if queue.qsize() > 0:
-      list_of_tags_to_upload: list = queue.get()
+      queue_value: list | None = queue.get()
+
+      # Check if this process needs to quit
+      if queue_value is None:
+        should_exit_loop = True
 
       # The list of tags should have values
-      if len(list_of_tags_to_upload) > 0:
+      elif len(queue_value) > 0:
 
         # Read the location from the relevant file
         dirname = path.dirname(__file__)
@@ -50,11 +47,13 @@ def upload_tags(queue: Queue, main_queue: Queue):
 
         # Make the API request
         try:
-          response = api_request.post({ 'location': location, 'epc': list_of_tags_to_upload })
+          print(queue_value)
+          response = api_request.post({ 'location': location, 'epc': queue_value })
           response.raise_for_status()
           if response.status_code == 200:
             main_queue.put("UPLOAD_SUCCESS")
         except requests.exceptions.HTTPError as err:
+          print(err)
           main_queue.put("UPLOAD_FAIL")
 
 def random_number_generator(queue: Queue, main_queue: Queue):
@@ -63,9 +62,12 @@ def random_number_generator(queue: Queue, main_queue: Queue):
     random_number: float = random()
     return_string += f" {str(random_number)}"
     if queue.qsize() > 0:
-      queue_value: str = queue.get()
-      if queue_value == "SCAN":
+      queue_value: str | None = queue.get()
+      if queue_value is None:
+        break
+      elif queue_value == "SCAN":
         main_queue.put(return_string)
+        print("Finished returning value to main_queue")
         return_string = "TAGS:"
     time.sleep(1)
 
@@ -461,10 +463,12 @@ if __name__ == "__main__":
   # Decide based on the environment variable passed in which process to launch
   # Either the tag reader process or the random number generator process
   if environment == EnvironmentVariable.PRODUCTION.value:
+    print("Starting prod process")
     read_tags_queue = Queue()
     read_tags_process = TagReader(read_tags_queue, main_queue)
     processes.append(read_tags_process)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
+    print("Starting dev process")
     read_tags_queue = Queue()
     read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue,))
     processes.append(read_tags_process)
@@ -484,34 +488,37 @@ if __name__ == "__main__":
   list_of_tags_to_upload = []
 
   while should_exit_program is False:
-    if main_queue.qsize() > 0:
-      main_queue_value = main_queue.get()
-      if main_queue_value == "SCAN":
-        print("SCAN")
-        display_tag_id_gui_queue.put("SCAN")
-        read_tags_queue.put("SCAN")
+    main_queue_value = main_queue.get(block=True)
+    print("Value in the main_queue: ", main_queue_value)
+    if main_queue_value == "SCAN":
+      print("SCAN")
+      display_tag_id_gui_queue.put("SCAN")
+      read_tags_queue.put("SCAN")
 
-      elif main_queue_value == "UPLOAD":
-        print("UPLOAD")
-        upload_tags_queue.put(list_of_tags_to_upload)
+    elif main_queue_value == "UPLOAD":
+      print("UPLOAD")
+      upload_tags_queue.put(list_of_tags_to_upload)
 
-      elif main_queue_value == "UPLOAD_SUCCESS":
-        print("UPLOAD SUCCESSFUL")
-        display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
-      
-      elif main_queue_value == "UPLOAD_FAIL":
-        print("UPLOAD_FAIL")
-        display_tag_id_gui_queue.put("UPLOAD_FAIL")
+    elif main_queue_value == "UPLOAD_SUCCESS":
+      print("UPLOAD SUCCESSFUL")
+      display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
+    
+    elif main_queue_value == "UPLOAD_FAIL":
+      print("UPLOAD_FAIL")
+      display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
-      elif main_queue_value == "QUIT":
-        print("QUIT")
-        read_tags_queue.put("QUIT")
-        upload_tags_queue.put("QUIT")
-        should_exit_program = True
+    elif main_queue_value == "QUIT":
+      # Pass in a sentinel value for all queues here
+      print("QUIT")
+      # read_tags_queue.put("QUIT")
+      read_tags_queue.put(None)
+      # upload_tags_queue.put("QUIT")
+      upload_tags_queue.put(None)
+      should_exit_program = True
 
-      elif main_queue_value.find("TAGS") != -1:
-        print("RECEIVED TAG VALUES IN MAIN PROCESS")
-        split_string = main_queue_value.split()
-        list_of_tags = split_string[1:]
-        display_tag_id_gui_queue.put(list_of_tags)
-        list_of_tags_to_upload.append(list_of_tags)
+    elif main_queue_value.find("TAGS") != -1:
+      print("RECEIVED TAG VALUES IN MAIN PROCESS")
+      split_string = main_queue_value.split()
+      list_of_tags = split_string[1:]
+      display_tag_id_gui_queue.put(list_of_tags)
+      list_of_tags_to_upload.extend(list_of_tags)
