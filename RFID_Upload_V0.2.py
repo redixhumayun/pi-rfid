@@ -458,12 +458,8 @@ if __name__ == "__main__":
   display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
   processes.append(display_tag_id_gui_process)
 
-  # Create the process associated with reading tags
-  read_tags_queue = Queue()
-  read_tags_process = TagReader(read_tags_queue, main_queue)
-  processes.append(read_tags_process) 
-
   # Decide based on the environment variable passed in which process to launch
+  # Either the tag reader process or the random number generator process
   if environment == EnvironmentVariable.PRODUCTION.value:
     read_tags_queue = Queue()
     read_tags_process = TagReader(read_tags_queue, main_queue)
