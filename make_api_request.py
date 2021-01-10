@@ -36,6 +36,7 @@ class MakeApiRequest():
       parsed_response = response.json()
       access_token = parsed_response['access_token']
       MakeApiRequest.add_authentication_header(access_token)
+      print('Got authentication token')
       return
     except Exception as err:
       raise err
@@ -53,29 +54,27 @@ class MakeApiRequest():
       return self.retry_request(method, payload)
     except Exception as err:
       raise err
-
-  def get(self, data: dict = {}):
+      
+  def get(self, data: dict={}):
     """Makes a GET method API request"""
     try:
       response = requests.get(self.url, params=data, headers=MakeApiRequest.headers)
-      if response.status_code == 401:
+      response.raise_for_status()
+      return response.json()
+    except requests.exceptions.HTTPError as err:
+      if err.response.status_code == 401:
         return self.authenticate_and_retry_request('GET', data)
       else:
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-      raise err
-    except Exception as err:
-      raise err
-  
+        raise err
+
   def post(self, data: dict):
     """Makes a POST method API request"""
     try:
       response = requests.post(self.url, json=data, headers=MakeApiRequest.headers)
-      if response.status_code == 401:
+      response.raise_for_status()
+      return response.json()
+    except requests.exceptions.HTTPError as err:
+      if err.response.status_code == 401:
         return self.authenticate_and_retry_request('POST', data)
       else:
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as err:
-      raise err
+        raise err

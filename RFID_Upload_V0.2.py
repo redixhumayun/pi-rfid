@@ -47,11 +47,9 @@ def upload_tags(queue: Queue, main_queue: Queue):
 
         # Make the API request
         try:
-          print(queue_value)
           response = api_request.post({ 'location': location, 'epc': queue_value })
-          response.raise_for_status()
-          if response.status_code == 200:
-            main_queue.put("UPLOAD_SUCCESS")
+          print(response)
+          main_queue.put("UPLOAD_SUCCESS")
         except requests.exceptions.HTTPError as err:
           print(err)
           main_queue.put("UPLOAD_FAIL")
@@ -67,7 +65,6 @@ def random_number_generator(queue: Queue, main_queue: Queue):
         break
       elif queue_value == "SCAN":
         main_queue.put(return_string)
-        print("Finished returning value to main_queue")
         return_string = "TAGS:"
     time.sleep(1)
 
@@ -489,7 +486,6 @@ if __name__ == "__main__":
 
   while should_exit_program is False:
     main_queue_value = main_queue.get(block=True)
-    print("Value in the main_queue: ", main_queue_value)
     if main_queue_value == "SCAN":
       print("SCAN")
       display_tag_id_gui_queue.put("SCAN")
