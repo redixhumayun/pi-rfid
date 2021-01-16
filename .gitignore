@@ -3,4 +3,5 @@ pi-rfid-virtual-env
 .env
 __pycache__
 location.txt
+*.txt
 .idea

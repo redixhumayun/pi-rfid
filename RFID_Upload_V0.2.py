@@ -101,6 +101,7 @@ class TagReader(Process):
     self.tag_bytes_list = [] # The bytes read from the serial device for an RFID tag will be stored in this list
     self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
     self.string_of_tags = ""
+    self.start_time = 0
 
   def send_tags_to_main_process(self):
     """
@@ -112,6 +113,7 @@ class TagReader(Process):
     
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
+    self.start_time = time.time()
 
   def convert_tags_to_hex(self, tag_bytes_list):
     """
@@ -122,9 +124,6 @@ class TagReader(Process):
     # Stores the hex value of the RFID tag being read
     tag_hex_value = ""
 
-    # Use this to allow scanning for atleast 5 seconds after pressing the scan button
-    end_time = time.time() + 5
-
     for index, bytes_value in enumerate(tag_bytes_list):
       # The assumption here is that the first 3 bytes and the last byte are just placeholders
       if index > 3 and index < 16:
@@ -133,7 +132,7 @@ class TagReader(Process):
     if tag_hex_value not in self.tag_hex_list:
       self.tag_hex_list.append(tag_hex_value)
 
-    if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and end_time > time.time():
+    if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
       self.send_tags_to_main_process()
 
   def read_tag_bytes(self):
@@ -169,8 +168,18 @@ class TagReader(Process):
         if input_queue_string == "SCAN":
           # When the user clicks the scan button, clear any previously scanned RFID's
           self.should_send_back_tag_values = True
+          self.start_time = time.time()
+        elif input_queue_string == "NOTSCAN":
+          self.should_send_back_tag_values = False
           self.tag_hex_list.clear()
-        if input_queue_string == "QUIT":
+          time_end = time.time() + 3
+          while time.time() < time_end:
+            tag_bytes_list_for_device_1.clear()
+            tag_bytes_list_for_device_2.clear()
+            self.serial_device_1.reset_input_buffer()
+            self.serial_device_2.reset_input_buffer()
+          self.start_time = time.time()
+        elif input_queue_string == "QUIT":
           should_exit_loop = True
 
       read_bytes_from_device_1 = self.serial_device_1.read()
@@ -240,6 +249,10 @@ class DisplayTagIdGUI(Process):
     This method is called when the scan button is pressed
     """
     self.main_queue.put("SCAN")
+
+  def stop_scan(self):
+    self.clear_canvas()
+    self.main_queue.put("NOTSCAN")
   
   def upload(self):
     """
@@ -283,11 +296,11 @@ class DisplayTagIdGUI(Process):
     if self.queue.qsize() > 0:
       input_value = self.queue.get()
 
-      # Check if the scan button has been clicked
-      if input_value == "SCAN":
-        self.clear_canvas()
+      # # Check if the scan button has been clicked
+      # if input_value == "SCAN":
+      #   self.clear_canvas()
 
-      elif input_value == "UPLOAD_SUCCESS":
+      if input_value == "UPLOAD_SUCCESS":
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
@@ -301,9 +314,8 @@ class DisplayTagIdGUI(Process):
       
       # If the value is none of the above, then it must be the list of tags to display
       else:
-        string_to_display = ""
-        for value in input_value:
-          string_to_display += value + "\n"
+        self.clear_canvas()
+        string_to_display = input_value
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text=string_to_display, tag="text_to_be_shown")
         self.root.update()
@@ -320,8 +332,10 @@ class DisplayTagIdGUI(Process):
                             height=450)
     self.canvas.pack(side=tk.TOP)
     scan_button = ttk.Button(self.root, text="Scan", command=self.scan)
+    stop_scan_button = ttk.Button(self.root, text="NotScan", command=self.stop_scan)
     upload_button = ttk.Button(self.root, text="Upload", command=self.upload)
     scan_button.pack(side=tk.RIGHT)
+    stop_scan_button.pack(side=tk.RIGHT)
     upload_button.pack(side=tk.RIGHT)
     self.root.protocol("WM_DELETE_WINDOW", self.close_window)
     self.root.after(900, self.run_loop)
@@ -394,7 +408,6 @@ if __name__ == "__main__":
 
   # Parse the environment from command line
   environment = parser.parse_args().environment
-  print(environment)
 
   # This variable will determine whether the location should be checked or not
   should_check_location = False
@@ -460,12 +473,10 @@ if __name__ == "__main__":
   # Decide based on the environment variable passed in which process to launch
   # Either the tag reader process or the random number generator process
   if environment == EnvironmentVariable.PRODUCTION.value:
-    print("Starting prod process")
     read_tags_queue = Queue()
     read_tags_process = TagReader(read_tags_queue, main_queue)
     processes.append(read_tags_process)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
-    print("Starting dev process")
     read_tags_queue = Queue()
     read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue,))
     processes.append(read_tags_process)
@@ -487,9 +498,11 @@ if __name__ == "__main__":
   while should_exit_program is False:
     main_queue_value = main_queue.get(block=True)
     if main_queue_value == "SCAN":
-      print("SCAN")
-      display_tag_id_gui_queue.put("SCAN")
       read_tags_queue.put("SCAN")
+
+    elif main_queue_value == "NOTSCAN":
+      list_of_tags_to_upload.clear()
+      read_tags_queue.put("NOTSCAN")
 
     elif main_queue_value == "UPLOAD":
       print("UPLOAD")
@@ -506,15 +519,14 @@ if __name__ == "__main__":
     elif main_queue_value == "QUIT":
       # Pass in a sentinel value for all queues here
       print("QUIT")
-      # read_tags_queue.put("QUIT")
       read_tags_queue.put(None)
-      # upload_tags_queue.put("QUIT")
       upload_tags_queue.put(None)
       should_exit_program = True
 
     elif main_queue_value.find("TAGS") != -1:
-      print("RECEIVED TAG VALUES IN MAIN PROCESS")
       split_string = main_queue_value.split()
+      number_of_tags = split_string[1]
+      print("RECEIVED TAG VALUES IN MAIN PROCESS", number_of_tags)
       list_of_tags = split_string[1:]
-      display_tag_id_gui_queue.put(list_of_tags)
+      display_tag_id_gui_queue.put(number_of_tags)
       list_of_tags_to_upload.extend(list_of_tags)
