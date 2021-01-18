@@ -10,6 +10,7 @@ import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
 
+from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
 from environment_variable import EnvironmentVariable
@@ -409,6 +410,10 @@ if __name__ == "__main__":
 
   # Parse the environment from command line
   environment = parser.parse_args().environment
+
+  # Get the secrets from AWS
+  secrets = get_secret()
+  write_secrets_to_env_file(secrets=secrets)
 
   # This variable will determine whether the location should be checked or not
   should_check_location = False
