@@ -2,25 +2,25 @@ import requests
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
-#   Load all the env variables
-api_url = os.getenv("SERVER_BASE_URL")
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("CLIENT_SECRET")
-audience = os.getenv("AUDIENCE")
-grant_type = os.getenv("GRANT_TYPE")
-auth0_domain = os.getenv("AUTH0_DOMAIN")
-
 """
 This class will be used to construct and carry out API requests.
 """
 class MakeApiRequest():
+  # Load the env variables when this class is instantiated
+  load_dotenv()
+
   # This will be a static variable for this class
   headers = {'version': '4.0'}
 
   def __init__(self, url: str):
-    self.url = f"{api_url}{url}"
+    #   Load all the env variables
+    self.api_url = os.getenv("SERVER_BASE_URL")
+    self.client_id = os.getenv("CLIENT_ID")
+    self.client_secret = os.getenv("CLIENT_SECRET")
+    self.audience = os.getenv("AUDIENCE")
+    self.grant_type = os.getenv("GRANT_TYPE")
+    self.auth0_domain = os.getenv("AUTH0_DOMAIN")
+    self.url = f"{self.api_url}{url}"
 
   @staticmethod
   def add_authentication_header(token: str) -> None:
