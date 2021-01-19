@@ -165,7 +165,6 @@ class TagReader(Process):
     tag_bytes_list_for_device_2 = []
 
     while should_exit_loop is False:
-
       # Check if the queue has any elements in it
       # Do this because queue.get() is a blocking call
       if self.queue.qsize() > 0:
@@ -180,7 +179,7 @@ class TagReader(Process):
           self.tag_hex_list.clear()
           self.should_send_back_tag_values = True
           self.start_time = time.time()
-        if input_queue_string == "UPLOAD":
+        elif input_queue_string == "UPLOAD":
           tag_bytes_list_for_device_1.clear()
           tag_bytes_list_for_device_2.clear()
           self.serial_device_1.reset_input_buffer()
@@ -224,6 +223,10 @@ class TagReader(Process):
           should_read_tags_from_device_2 = False
           self.convert_tags_to_hex(tag_bytes_list = tag_bytes_list_for_device_2)
           tag_bytes_list_for_device_2.clear() # Clear the bytes from the RFID tag read in preparation for the next one
+    
+    # Once the loop exits, perform clean up and close serial ports
+    self.serial_device_1.close()
+    self.serial_device_2.close()
 
   def run(self):
     """
