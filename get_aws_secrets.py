@@ -28,6 +28,10 @@ def get_secret():
             SecretId=secret_name
         )
     except ClientError as e:
+        if e.response['Error']['Code'] == 'AccessDeniedException':
+            # The user running on this Pi does not have access to the Systems Manager
+            # service on AWS. Please add the required permissions to this user
+            raise e
         if e.response['Error']['Code'] == 'DecryptionFailureException':
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
             # Deal with the exception here, and/or rethrow at your discretion.
@@ -65,5 +69,3 @@ def write_secrets_to_env_file(secrets: dict):
         for key, value in secrets.items():
             string_to_write = f"{key}={value}\n"   
             env_file.write(string_to_write)
-
-result = get_secret()
