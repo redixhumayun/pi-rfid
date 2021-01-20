@@ -3,5 +3,8 @@ pi-rfid-virtual-env
 .env
 __pycache__
 location.txt
-*.txt
+bytes_and_inpt_output_multiple.txt
+bytes_and_int_output.txt
+bytes_output.txt
+test.txt
 .idea

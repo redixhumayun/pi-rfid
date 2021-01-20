@@ -1,11 +1,13 @@
 #!/usr/bin/python3
-from os import environ, path
+import multiprocessing
+from os import path
 from multiprocessing import Process, Queue
 import time
 import serial
 import sys
 import argparse
 import requests
+import logging, logging.handlers
 import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
@@ -14,6 +16,32 @@ from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
 from environment_variable import EnvironmentVariable
+
+def listener_configurer():
+  root = logging.getLogger()
+  rotating_file_handler = logging.handlers.RotatingFileHandler('mptest.log', 'a', 300, 10)
+  formatter = logging.Formatter('%(asctime)s $(processName)-10s $name(s) $(levelname)-8s %(message)s')
+  rotating_file_handler.setFormatter(formatter)
+  root.addHandler(rotating_file_handler)
+
+def listener_process(queue, configurer):
+  configurer()
+  while True:
+    try:
+      record = queue.get()
+      if record is None:
+        break
+      logger = logging.getLogger(record.name)
+      logger.handle(record)
+    except Exception:
+      import sys, traceback
+      traceback.print_exc(file=sys.stderr)
+
+def worker_configurer(queue):
+  queue_handler = logging.handlers.QueueHandler(queue)
+  root = logging.getLogger()
+  root.addHandler(queue_handler)
+  root.setLevel(logging.DEBUG)
 
 def upload_tags(queue: Queue, main_queue: Queue):
   """
@@ -55,19 +83,25 @@ def upload_tags(queue: Queue, main_queue: Queue):
           print(err)
           main_queue.put("UPLOAD_FAIL")
 
-def random_number_generator(queue: Queue, main_queue: Queue):
+def random_number_generator(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer):
+  configurer(logging_queue)
+  logger = logging.getLogger('random_number_generator')
   return_string = "TAGS:"
   while True:
     random_number: float = random()
+    logger.log(logging.DEBUG, f"Generated random number {random_number}")
     return_string += f" {str(random_number)}"
     if queue.qsize() > 0:
       queue_value: str | None = queue.get()
+      logger.log(logging.DEBUG, f"Received {queue_value} from queue")
       if queue_value is None:
         break
       elif queue_value == "SCAN":
+        logger.log(logging.DEBUG, f"Returning {return_string} to main queue")
         main_queue.put(return_string)
         return_string = "TAGS:"
     time.sleep(1)
+  logger.log(logging.DEBUG, "Exiting the random number generator process")
 
 class TagReader(Process):
   """
@@ -414,7 +448,7 @@ if __name__ == "__main__":
   # Parse the environment from command line
   environment = parser.parse_args().environment
 
-  # Get the secrets from AWS
+  # Get the secrets from AWS and write them to a file
   secrets = get_secret()
   write_secrets_to_env_file(secrets=secrets)
 
@@ -479,6 +513,16 @@ if __name__ == "__main__":
   display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
   processes.append(display_tag_id_gui_process)
 
+  # Create the queue and process associated with uploading tags
+  upload_tags_queue = Queue()
+  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue,))
+  processes.append(upload_tags_process)
+
+  # Create a queue and process for logging purposes
+  logging_queue = Queue()
+  logging_listener = Process(target=listener_process, args=(logging_queue, listener_configurer,))
+  processes.append(logging_listener)
+
   # Decide based on the environment variable passed in which process to launch
   # Either the tag reader process or the random number generator process
   if environment == EnvironmentVariable.PRODUCTION.value:
@@ -487,24 +531,17 @@ if __name__ == "__main__":
     processes.append(read_tags_process)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
     read_tags_queue = Queue()
-    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue,))
+    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue, logging_queue, worker_configurer,))
     processes.append(read_tags_process)
   else:
     raise Exception('Unknown input for --env argument')
 
-  # Create the queue and process associated with uploading tags
-  upload_tags_queue = Queue()
-  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue,))
-  processes.append(upload_tags_process)
-
   for process in processes:
     process.start()
 
-  should_exit_program = False
-
   list_of_tags_to_upload = []
 
-  while should_exit_program is False:
+  while True:
     main_queue_value = main_queue.get(block=True)
     if main_queue_value == "SCAN":
       # Everytime the user hits scan, start a fresh read
@@ -529,8 +566,8 @@ if __name__ == "__main__":
       print("QUIT")
       read_tags_queue.put(None)
       upload_tags_queue.put(None)
-      should_exit_program = True
-
+      break
+    
     elif main_queue_value.find("TAGS") != -1:
       split_string = main_queue_value.split()
       number_of_tags = split_string[1]
