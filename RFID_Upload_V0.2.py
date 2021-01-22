@@ -11,6 +11,7 @@ import logging, logging.handlers
 import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
+from typing import Callable, Union, List
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
@@ -19,8 +20,8 @@ from environment_variable import EnvironmentVariable
 
 def listener_configurer():
   root = logging.getLogger()
-  rotating_file_handler = logging.handlers.RotatingFileHandler('mptest.log', 'a', 300, 10)
-  formatter = logging.Formatter('%(asctime)s $(processName)-10s $name(s) $(levelname)-8s %(message)s')
+  rotating_file_handler = logging.handlers.RotatingFileHandler('mptest.log', 'a')
+  formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
   rotating_file_handler.setFormatter(formatter)
   root.addHandler(rotating_file_handler)
 
@@ -38,25 +39,32 @@ def listener_process(queue, configurer):
       traceback.print_exc(file=sys.stderr)
 
 def worker_configurer(queue):
-  queue_handler = logging.handlers.QueueHandler(queue)
+  print("called worker_configurer")
   root = logging.getLogger()
-  root.addHandler(queue_handler)
   root.setLevel(logging.DEBUG)
+  if not root.hasHandlers():
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
+    console_handler.setFormatter(formatter)
+    queue_handler = logging.handlers.QueueHandler(queue)
+    root.addHandler(queue_handler)
+    root.addHandler(console_handler)
 
-def upload_tags(queue: Queue, main_queue: Queue):
+def upload_tags(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
   """
   This function will be used to run the upload process
   """
+  logger = logging.getLogger('upload_tags_process')
+
   api_request = MakeApiRequest('/fabship/product/rfid')
 
   # Use this variable to determine when to break out of a loop
   should_exit_loop = False
 
-
   while should_exit_loop is False:
     # Always check if the queue has elements in it
     if queue.qsize() > 0:
-      queue_value: list | None = queue.get()
+      queue_value: Union[List[str], None] = queue.get()
 
       # Check if this process needs to quit
       if queue_value is None:
@@ -64,42 +72,47 @@ def upload_tags(queue: Queue, main_queue: Queue):
 
       # The list of tags should have values
       elif len(queue_value) > 0:
-
+        logger.log(logging.DEBUG, f"Received the following tags to upload: {queue_value}")
         # Read the location from the relevant file
         dirname = path.dirname(__file__)
         filename = path.join(dirname, 'location.txt')
         try:
+          logger.log(logging.DEBUG, "Trying to read the location before uploading tags")
           with open(filename, 'r') as f:
             location = f.readline()
         except FileNotFoundError as err:
+          logger.log(logging.ERROR, "Could not find the location.txt file to read from")
           raise err
 
         # Make the API request
         try:
+          logger.log(logging.DEBUG, "Making a POST request")
           response = api_request.post({ 'location': location, 'epc': queue_value })
-          print(response)
+          logger.log(logging.DEBUG, f"Received the following response: {response}")
           main_queue.put("UPLOAD_SUCCESS")
         except requests.exceptions.HTTPError as err:
-          print(err)
+          logger.log(logging.ERROR, f"Error raised while uploading tags: {err}")
           main_queue.put("UPLOAD_FAIL")
 
-def random_number_generator(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer):
-  configurer(logging_queue)
+def random_number_generator(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
   logger = logging.getLogger('random_number_generator')
-  return_string = "TAGS:"
+  return_string: str = "TAGS:"
   while True:
     random_number: float = random()
-    logger.log(logging.DEBUG, f"Generated random number {random_number}")
     return_string += f" {str(random_number)}"
     if queue.qsize() > 0:
-      queue_value: str | None = queue.get()
+      queue_value: Union[str, None] = queue.get()
       logger.log(logging.DEBUG, f"Received {queue_value} from queue")
+      
       if queue_value is None:
         break
-      elif queue_value == "SCAN":
+      
+      if queue_value == "SCAN":
+        print(f"Returning {return_string} to main queue")
         logger.log(logging.DEBUG, f"Returning {return_string} to main queue")
         main_queue.put(return_string)
         return_string = "TAGS:"
+
     time.sleep(1)
   logger.log(logging.DEBUG, "Exiting the random number generator process")
 
@@ -275,7 +288,7 @@ class DisplayTagIdGUI(Process):
   are being read from the USB device
   """
 
-  def __init__(self, queue: Queue, main_queue: Queue):
+  def __init__(self, queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
     """
     Parameters
     ----------
@@ -286,9 +299,11 @@ class DisplayTagIdGUI(Process):
       main process
     """
     Process.__init__(self)
+    configurer(logging_queue)
     self.queue = queue
     self.main_queue = main_queue
     self.action_to_perform = None
+    self.logger = logging.getLogger('display_tag_id_gui')
 
   def scan(self):
     """
@@ -300,6 +315,7 @@ class DisplayTagIdGUI(Process):
     """
     This method is called when the upload button is pressed
     """
+    self.logger.log(logging.DEBUG, "The user pressed upload")
     self.main_queue.put("UPLOAD")
 
   def close_window(self):
@@ -308,6 +324,7 @@ class DisplayTagIdGUI(Process):
     """
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
       self.main_queue.put("QUIT")
+      self.logger.log(logging.DEBUG, "The user pressed quit")
       self.root.destroy()
 
   def clear_canvas(self):
@@ -340,15 +357,18 @@ class DisplayTagIdGUI(Process):
 
       # Check if the scan button has been clicked
       if input_value == "SCAN":
+        self.logger.log(logging.DEBUG, "Clearing canvas because user pressed scan")
         self.clear_canvas()
 
       if input_value == "UPLOAD_SUCCESS":
+        self.logger.log(logging.DEBUG, "Clearing canvas because the upload was successful")
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
         self.root.update()
         
       elif input_value == "UPLOAD_FAIL":
+        self.logger.log(logging.DEBUG, "Clearing canvas because the upload failed")
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text="UPLOAD FAILED", tag="text_to_be_shown")
@@ -473,7 +493,7 @@ if __name__ == "__main__":
   main_queue = Queue()
 
   # Start GPS process and allow user to select location only if
-  # locatio has not already been set
+  # location has not already been set
   if should_check_location is True:
     # Create a boolean to check if the location has been picked by the user
     has_location_been_picked = False
@@ -508,20 +528,25 @@ if __name__ == "__main__":
     # Clear the process list
     processes.clear()
 
+
+  # Create a queue and process for logging purposes
+  logging_queue = Queue(-1)
+  logging_listener = Process(target=listener_process, args=(logging_queue, listener_configurer))
+  # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
+  # later works, but it does. If you add this process to a list and start it later in a for loop
+  # it will cause the same line to log thousands of times
+  # processes.append(logging_listener)
+  logging_listener.start()
+
   # Create the GUI and associated queue to allow the user to view the scanned tags
   display_tag_id_gui_queue = Queue()
-  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
+  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue, logging_queue, worker_configurer)
   processes.append(display_tag_id_gui_process)
 
   # Create the queue and process associated with uploading tags
   upload_tags_queue = Queue()
-  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue,))
+  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue, logging_queue, worker_configurer))
   processes.append(upload_tags_process)
-
-  # Create a queue and process for logging purposes
-  logging_queue = Queue()
-  logging_listener = Process(target=listener_process, args=(logging_queue, listener_configurer,))
-  processes.append(logging_listener)
 
   # Decide based on the environment variable passed in which process to launch
   # Either the tag reader process or the random number generator process
@@ -564,8 +589,9 @@ if __name__ == "__main__":
     elif main_queue_value == "QUIT":
       # Pass in a sentinel value for all queues here
       print("QUIT")
-      read_tags_queue.put(None)
-      upload_tags_queue.put(None)
+      read_tags_queue.put_nowait(None)
+      upload_tags_queue.put_nowait(None)
+      logging_queue.put_nowait(None)
       break
     
     elif main_queue_value.find("TAGS") != -1:
@@ -577,3 +603,7 @@ if __name__ == "__main__":
       list_of_tags_to_upload.extend(list_of_tags)
       # Make the list unique
       list_of_tags_to_upload = list(set(list_of_tags_to_upload))
+  
+  for process in processes:
+    logging_listener.join()
+    process.join()
