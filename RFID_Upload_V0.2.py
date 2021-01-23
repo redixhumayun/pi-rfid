@@ -340,8 +340,6 @@ class DisplayTagIdGUI(Process):
       self.root.update()
     except Exception as err:
       self.logger.log(logging.ERROR, "The canvas could not be cleared. {err}")
-      print("Cannot clear canvas probably because there is nothing on the canvas to clear")
-      print(err)
 
   def run_loop(self):
     """
@@ -588,21 +586,17 @@ if __name__ == "__main__":
       read_tags_queue.put("SCAN")
 
     elif main_queue_value == "UPLOAD":
-      print("UPLOAD")
       read_tags_queue.put("UPLOAD")
       upload_tags_queue.put(list_of_tags_to_upload)
 
     elif main_queue_value == "UPLOAD_SUCCESS":
-      print("UPLOAD SUCCESSFUL")
       display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
     
     elif main_queue_value == "UPLOAD_FAIL":
-      print("UPLOAD_FAIL")
       display_tag_id_gui_queue.put("UPLOAD_FAIL")
 
     elif main_queue_value == "QUIT":
       # Pass in a sentinel value for all queues here
-      print("QUIT")
       read_tags_queue.put_nowait(None)
       upload_tags_queue.put_nowait(None)
       logging_queue.put_nowait(None)
@@ -611,7 +605,6 @@ if __name__ == "__main__":
     elif main_queue_value.find("TAGS") != -1:
       split_string = main_queue_value.split()
       number_of_tags = split_string[1]
-      print("RECEIVED TAG VALUES IN MAIN PROCESS", number_of_tags)
       list_of_tags = split_string[2:]
       display_tag_id_gui_queue.put(number_of_tags)
       list_of_tags_to_upload.extend(list_of_tags)
