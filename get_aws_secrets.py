@@ -4,6 +4,7 @@
 
 import boto3
 import base64
+import logging
 from botocore.exceptions import ClientError
 import json
 
@@ -19,15 +20,20 @@ def get_secret():
         region_name=region_name
     )
 
+    # Create a logger instance
+    logger = logging.getLogger('get_aws_secrets')
+
     # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
     # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
     # We rethrow the exception by default.
 
     try:
+        logger.log(logging.DEBUG, "Making a request to get the AWS secrets")
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
     except ClientError as e:
+        logger.log(logging.ERROR, e)
         if e.response['Error']['Code'] == 'AccessDeniedException':
             # The user running on this Pi does not have access to the Systems Manager
             # service on AWS. Please add the required permissions to this user
@@ -57,15 +63,18 @@ def get_secret():
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
-            return json.loads(secret)
+            parsed_secret_values = json.loads(secret)
+            logging.log(logging.DEBUG, f"Received the following secrets: {parsed_secret_values}")
+            return parsed_secret_values
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-            print(decoded_binary_secret)
             
     # Your code goes here.
 
 def write_secrets_to_env_file(secrets: dict):
+    logger = logging.getLogger('write_secrets_to_env_file')
     with open('.env', 'w') as env_file:
+        logger.log(logging.DEBUG, f"Writing the following secrets to the .env file: {secrets}")
         for key, value in secrets.items():
             string_to_write = f"{key}={value}\n"   
             env_file.write(string_to_write)
