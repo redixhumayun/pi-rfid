@@ -42,6 +42,7 @@ def listener_process(queue, configurer):
       import sys, traceback
       traceback.print_exc(file=sys.stderr)
 
+# This is the configurer process which configures the handlers
 def worker_configurer(queue):
   root = logging.getLogger()
   root.setLevel(logging.DEBUG)
@@ -155,6 +156,7 @@ class TagReader(Process):
     self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
     self.string_of_tags = ""
     self.start_time = 0
+    self.logger = logging.getLogger('tag_reader')
 
   def send_tags_to_main_process(self):
     """
@@ -164,6 +166,7 @@ class TagReader(Process):
     for tag_value in self.tag_hex_list:
       self.string_of_tags += tag_value + " "
     
+    self.logger.log(logging.DEBUG, "Sending the following tags to the main process: {self.string_of_tags}")
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
     self.start_time = time.time()
@@ -203,9 +206,11 @@ class TagReader(Process):
       If the USB device is not connected properly and cannot be read from
     """
     try:
+      self.logger.log(logging.DEBUG, "Starting the serial ports for RFID reading")
       self.serial_device_1 = serial.Serial('/dev/ttyUSB0', 57600, timeout=0.5)
       self.serial_device_2 = serial.Serial('/dev/ttyUSB1', 57600, timeout=0.5)
     except serial.serialutil.SerialException as err:
+      self.logger.log(logging.ERROR, "There was an error while opening ports for the RFID readers: {err}")
       raise err
 
     should_exit_loop = False
@@ -224,6 +229,7 @@ class TagReader(Process):
         if input_queue_string == "SCAN":
           # When the user clicks the scan button, clear the buffer
           # clear the bytes list and also clear previously stored EPC's
+          self.logger.log(logging.DEBUG, "Clearing the bytes list for tags in preparation for another scan")
           tag_bytes_list_for_device_1.clear()
           tag_bytes_list_for_device_2.clear()
           self.serial_device_1.reset_input_buffer()
@@ -232,6 +238,7 @@ class TagReader(Process):
           self.should_send_back_tag_values = True
           self.start_time = time.time()
         elif input_queue_string == "UPLOAD":
+          self.logger.log(logging.DEBUG, "Clearing the bytes list for tags in preparation for an upload")
           tag_bytes_list_for_device_1.clear()
           tag_bytes_list_for_device_2.clear()
           self.serial_device_1.reset_input_buffer()
@@ -240,6 +247,7 @@ class TagReader(Process):
           self.should_send_back_tag_values = False
           self.start_time = time.time()
         elif input_queue_string == "QUIT":
+          self.logger.log(logging.DEBUG, "Exiting the tag_reader process")
           should_exit_loop = True
 
       read_bytes_from_device_1 = self.serial_device_1.read()
