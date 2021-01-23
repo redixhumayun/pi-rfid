@@ -72,8 +72,10 @@ class MakeApiRequest():
       return response.json()
     except requests.exceptions.HTTPError as err:
       if err.response.status_code == 401:
+        self.logger.log(logging.ERROR, "There was a 401 authentication error while making the GET request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('GET', data)
       else:
+        self.logger.log(logging.ERROR, "There was an error while making the GET request: {err}")
         raise err
 
   def post(self, data: dict):
@@ -85,6 +87,8 @@ class MakeApiRequest():
       return response.json()
     except requests.exceptions.HTTPError as err:
       if err.response.status_code == 401:
+        self.logger.log(logging.ERROR, "There was a 401 authentication error while making the POST request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('POST', data)
       else:
+        self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
         raise err
