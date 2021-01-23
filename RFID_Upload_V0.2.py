@@ -11,20 +11,24 @@ import watchtower
 import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
-from typing import Callable, Union, List
+from typing import Union, List
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
 from environment_variable import EnvironmentVariable
 
+# This method is used to configure the watchtower handler which will be used to
+# log the events to AWS CloudWatch
 def listener_configurer():
   root = logging.getLogger()
-  rotating_file_handler = logging.handlers.RotatingFileHandler('mptest.log', 'a')
+  watchtower_handler = watchtower.CloudWatchLogHandler()
   formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
-  rotating_file_handler.setFormatter(formatter)
-  root.addHandler(rotating_file_handler)
+  watchtower_handler.setFormatter(formatter)
+  root.addHandler(watchtower_handler)
 
+# This is the listener process which will watch the multiprocessing Queue for all
+# records that are sent by the remaining processes
 def listener_process(queue, configurer):
   configurer()
   while True:
@@ -44,16 +48,13 @@ def worker_configurer(queue):
   if not root.hasHandlers():
     console_handler = logging.StreamHandler()
     queue_handler = logging.handlers.QueueHandler(queue)
-    watchtower_handler = watchtower.CloudWatchLogHandler()
 
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
 
     console_handler.setFormatter(formatter)
-    watchtower_handler.setFormatter(formatter)
 
     root.addHandler(queue_handler)
     root.addHandler(console_handler)
-    root.addHandler(watchtower_handler)
 
 def upload_tags(queue: Queue, main_queue: Queue):
   """
