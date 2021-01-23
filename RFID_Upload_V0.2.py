@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import multiprocessing
 from os import path
 from multiprocessing import Process, Queue
 import time
@@ -21,7 +20,7 @@ from environment_variable import EnvironmentVariable
 def listener_configurer():
   root = logging.getLogger()
   rotating_file_handler = logging.handlers.RotatingFileHandler('mptest.log', 'a')
-  formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
+  formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
   rotating_file_handler.setFormatter(formatter)
   root.addHandler(rotating_file_handler)
 
@@ -39,18 +38,17 @@ def listener_process(queue, configurer):
       traceback.print_exc(file=sys.stderr)
 
 def worker_configurer(queue):
-  print("called worker_configurer")
   root = logging.getLogger()
   root.setLevel(logging.DEBUG)
   if not root.hasHandlers():
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
     console_handler.setFormatter(formatter)
     queue_handler = logging.handlers.QueueHandler(queue)
     root.addHandler(queue_handler)
     root.addHandler(console_handler)
 
-def upload_tags(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
+def upload_tags(queue: Queue, main_queue: Queue):
   """
   This function will be used to run the upload process
   """
@@ -94,7 +92,7 @@ def upload_tags(queue: Queue, main_queue: Queue, logging_queue: Queue, configure
           logger.log(logging.ERROR, f"Error raised while uploading tags: {err}")
           main_queue.put("UPLOAD_FAIL")
 
-def random_number_generator(queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
+def random_number_generator(queue: Queue, main_queue: Queue):
   logger = logging.getLogger('random_number_generator')
   return_string: str = "TAGS:"
   while True:
@@ -309,6 +307,7 @@ class DisplayTagIdGUI(Process):
     """
     This method is called when the scan button is pressed
     """
+    self.logger.log(logging.DEBUG, "The user pressed scan")
     self.main_queue.put("SCAN")
   
   def upload(self):
@@ -335,6 +334,7 @@ class DisplayTagIdGUI(Process):
       self.canvas.delete("text_to_be_shown")
       self.root.update()
     except Exception as err:
+      self.logger.log(logging.ERROR, "The canvas could not be cleared. {err}")
       print("Cannot clear canvas probably because there is nothing on the canvas to clear")
       print(err)
 
@@ -413,6 +413,7 @@ class SelectLocationGUI(Process):
     self.main_queue = main_queue
     self.possible_locations = None
     self.buttons = {}
+    self.logger = logging.getLogger('select_location_gui')
 
   def command(self, location: str):
     """
@@ -424,10 +425,12 @@ class SelectLocationGUI(Process):
     location: str, required
       The location selected by the user
     """
+    self.logger.log(logging.DEBUG, f"The user has picked the location: {location}")
     dirname = path.dirname(__file__)
     filename = path.join(dirname, 'location.txt')
     with open(filename, 'w+') as f:
       f.write(location)
+      self.logger.log(logging.DEBUG, f"Done writing the location to location.txt")
     self.root.destroy()
     self.main_queue.put("LOCATION_PICKED")
 
@@ -492,6 +495,15 @@ if __name__ == "__main__":
   # Create the main queue that will be used for parent child communication
   main_queue = Queue()
 
+  # Create a queue and process for logging purposes
+  logging_queue = Queue(-1)
+  logging_listener = Process(target=listener_process, args=(logging_queue, listener_configurer))
+  # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
+  # later works, but it does. If you add this process to a list and start it later in a for loop
+  # it will cause the same line to log thousands of times
+  # processes.append(logging_listener)
+  logging_listener.start()
+
   # Start GPS process and allow user to select location only if
   # location has not already been set
   if should_check_location is True:
@@ -501,7 +513,7 @@ if __name__ == "__main__":
     # Create the GUI and associated queue to fetch lat & long using GPS device
     gps_queue = Queue()
     gps_process = Process(
-        target=get_latitude_and_longitude, args=(gps_queue, environment,))
+        target=get_latitude_and_longitude, args=(gps_queue, environment, logging_queue, worker_configurer))
 
     # Create the GUI and associated queue to allow the user to select the location
     select_location_gui_queue = Queue()
@@ -525,18 +537,12 @@ if __name__ == "__main__":
       if main_queue_value == "LOCATION_PICKED":
         has_location_been_picked = True
 
+    # Allow the processes to stop
+    for process in processes:
+      process.join()
+
     # Clear the process list
     processes.clear()
-
-
-  # Create a queue and process for logging purposes
-  logging_queue = Queue(-1)
-  logging_listener = Process(target=listener_process, args=(logging_queue, listener_configurer))
-  # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
-  # later works, but it does. If you add this process to a list and start it later in a for loop
-  # it will cause the same line to log thousands of times
-  # processes.append(logging_listener)
-  logging_listener.start()
 
   # Create the GUI and associated queue to allow the user to view the scanned tags
   display_tag_id_gui_queue = Queue()
@@ -545,7 +551,7 @@ if __name__ == "__main__":
 
   # Create the queue and process associated with uploading tags
   upload_tags_queue = Queue()
-  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue, logging_queue, worker_configurer))
+  upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue))
   processes.append(upload_tags_process)
 
   # Decide based on the environment variable passed in which process to launch
@@ -556,7 +562,7 @@ if __name__ == "__main__":
     processes.append(read_tags_process)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
     read_tags_queue = Queue()
-    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue, logging_queue, worker_configurer,))
+    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue))
     processes.append(read_tags_process)
   else:
     raise Exception('Unknown input for --env argument')
