@@ -1,8 +1,10 @@
+import logging
 from multiprocessing.queues import Queue
-from os import environ
 import time
 import serial
 import pynmea2
+import logging
+from typing import Callable
 
 from make_api_request import MakeApiRequest
 from environment_variable import EnvironmentVariable
@@ -10,7 +12,9 @@ from environment_variable import EnvironmentVariable
 # This function is used to call the GPS device attached via USB
 # and fetch the latitude and longitude
 
-def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
+def get_latitude_and_longitude(gps_child_queue: Queue, environment: str, logging_queue: Queue, configurer: Callable[[Queue], None]):
+  configurer(logging_queue)
+
   # Run for at least this many number of seconds
   time_end = time.time() + 10
 
@@ -21,8 +25,12 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
   latitude = None
   longitude = None
 
+  # Configure the logger
+  logger = logging.getLogger('get_latitude_and_longitude')
+
   # When launching with hardware devices, use this loop
   if environment == EnvironmentVariable.PRODUCTION.value:
+    logger.log(logging.DEBUG, "Running the location finder function in production mode")
     while time.time() < time_end:
       x = serial_device.readline()
       y = x[:-2].decode('utf-8')
@@ -30,11 +38,13 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
         message = pynmea2.parse(str(y))
         latitude = message.latitude
         longitude = message.longitude
+        logger.log(logging.DEBUG, f"Got location details as: latitude -> {latitude}, longitude -> {longitude}")
 
     gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
 
   # When launching without hardware devices, use this loop
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
+    logger.log(logging.DEBUG, "Running the location finder function in development mode")
     while time.time() < time_end:
       latitude = 13.02518000
       longitude = 77.63192000
