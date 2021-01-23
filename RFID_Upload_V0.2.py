@@ -7,6 +7,7 @@ import sys
 import argparse
 import requests
 import logging, logging.handlers
+import watchtower
 import tkinter as tk
 from random import random
 from tkinter import ttk, messagebox
@@ -42,11 +43,17 @@ def worker_configurer(queue):
   root.setLevel(logging.DEBUG)
   if not root.hasHandlers():
     console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
-    console_handler.setFormatter(formatter)
     queue_handler = logging.handlers.QueueHandler(queue)
+    watchtower_handler = watchtower.CloudWatchLogHandler()
+
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
+
+    console_handler.setFormatter(formatter)
+    watchtower_handler.setFormatter(formatter)
+
     root.addHandler(queue_handler)
     root.addHandler(console_handler)
+    root.addHandler(watchtower_handler)
 
 def upload_tags(queue: Queue, main_queue: Queue):
   """
