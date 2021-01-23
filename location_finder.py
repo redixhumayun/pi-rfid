@@ -12,9 +12,7 @@ from environment_variable import EnvironmentVariable
 # This function is used to call the GPS device attached via USB
 # and fetch the latitude and longitude
 
-def get_latitude_and_longitude(gps_child_queue: Queue, environment: str, logging_queue: Queue, configurer: Callable[[Queue], None]):
-  configurer(logging_queue)
-
+def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
   # Run for at least this many number of seconds
   time_end = time.time() + 10
 

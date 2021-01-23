@@ -113,7 +113,6 @@ def random_number_generator(queue: Queue, main_queue: Queue):
         break
       
       if queue_value == "SCAN":
-        print(f"Returning {return_string} to main queue")
         logger.log(logging.DEBUG, f"Returning {return_string} to main queue")
         main_queue.put(return_string)
         return_string = "TAGS:"
@@ -293,7 +292,7 @@ class DisplayTagIdGUI(Process):
   are being read from the USB device
   """
 
-  def __init__(self, queue: Queue, main_queue: Queue, logging_queue: Queue, configurer: Callable[[Queue], None]):
+  def __init__(self, queue: Queue, main_queue: Queue):
     """
     Parameters
     ----------
@@ -304,7 +303,6 @@ class DisplayTagIdGUI(Process):
       main process
     """
     Process.__init__(self)
-    configurer(logging_queue)
     self.queue = queue
     self.main_queue = main_queue
     self.action_to_perform = None
@@ -511,6 +509,9 @@ if __name__ == "__main__":
   # processes.append(logging_listener)
   logging_listener.start()
 
+  # Start the worker process that will implement all required handlers
+  worker_configurer(logging_queue)
+
   # Start GPS process and allow user to select location only if
   # location has not already been set
   if should_check_location is True:
@@ -520,7 +521,7 @@ if __name__ == "__main__":
     # Create the GUI and associated queue to fetch lat & long using GPS device
     gps_queue = Queue()
     gps_process = Process(
-        target=get_latitude_and_longitude, args=(gps_queue, environment, logging_queue, worker_configurer))
+        target=get_latitude_and_longitude, args=(gps_queue, environment))
 
     # Create the GUI and associated queue to allow the user to select the location
     select_location_gui_queue = Queue()
@@ -553,7 +554,7 @@ if __name__ == "__main__":
 
   # Create the GUI and associated queue to allow the user to view the scanned tags
   display_tag_id_gui_queue = Queue()
-  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue, logging_queue, worker_configurer)
+  display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
   processes.append(display_tag_id_gui_process)
 
   # Create the queue and process associated with uploading tags
