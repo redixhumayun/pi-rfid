@@ -57,6 +57,8 @@ def worker_configurer(queue):
     root.addHandler(queue_handler)
     root.addHandler(console_handler)
 
+# This method runs a process which will upload tags when the user
+# clicks the Upload button
 def upload_tags(queue: Queue, main_queue: Queue):
   """
   This function will be used to run the upload process
@@ -171,6 +173,36 @@ class TagReader(Process):
     self.string_of_tags = ""
     self.start_time = time.time()
 
+  def is_tag_valid(self, tag_value) -> bool:
+    """
+    This method is used to determine the validity of an EPC tag
+    """
+    binary_tag_value: str = bin(int(tag_value, 16))[2:].zfill(96)  # This line converts from hex -> int -> bin, removes the 0b at the beginning and then zfills to get 96 bits
+
+    binary_header: str = binary_tag_value[0:8]
+    binary_filter_value: str = binary_tag_value[8:11]
+    binary_partition: str = binary_tag_value[11:14]
+    binary_company_prefix: str = binary_tag_value[14:34]
+    binary_item_reference: str = binary_tag_value[34:58]
+    binary_serial_value: str = binary_tag_value[58:]
+
+    header: int = int(binary_header, 2)
+    filter_value: int = int(binary_filter_value, 2)
+    partition: int = int(binary_partition, 2)
+    company_prefix: int = int(binary_company_prefix, 2)
+    item_reference: int = int(binary_item_reference, 2)
+    serial_value: int = int(binary_serial_value, 2)
+
+    # All SGTIN values have an 8-bit header corresponding to 48
+    if header != 48:
+      return False
+
+    # H&M's GS1 company prefix is 731422
+    if company_prefix != 731422:
+      return False
+
+    return True      
+
   def convert_tags_to_hex(self, tag_bytes_list):
     """
     This method is called to convert a list of bytes into one complete
@@ -186,7 +218,11 @@ class TagReader(Process):
         tag_hex_value += "{0:02X}".format(bytes_value)
 
     if tag_hex_value not in self.tag_hex_list:
-      self.tag_hex_list.append(tag_hex_value)
+      # Check if this is a valid EPC tag for H&M
+      if self.is_tag_valid(tag_hex_value) is True:
+        self.tag_hex_list.append(tag_hex_value)
+      else:
+        self.logger.log(logging.ERROR, f"This tag value {tag_hex_value} is not a valid EPC")
 
     # Before sending tag values to the main process, check the following:
     # 1. The boolean for this is set to True
