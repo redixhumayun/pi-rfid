@@ -168,7 +168,6 @@ class TagReader(Process):
     for tag_value in self.tag_hex_list:
       self.string_of_tags += tag_value + " "
     
-    self.logger.log(logging.DEBUG, f"Sending the following tags to the main process: {self.string_of_tags}")
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
     self.start_time = time.time()
@@ -201,7 +200,7 @@ class TagReader(Process):
     if company_prefix != 731422:
       return False
 
-    return True      
+    return True
 
   def convert_tags_to_hex(self, tag_bytes_list):
     """
