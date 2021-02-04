@@ -168,7 +168,7 @@ class TagReader(Process):
     for tag_value in self.tag_hex_list:
       self.string_of_tags += tag_value + " "
     
-    self.logger.log(logging.DEBUG, "Sending the following tags to the main process: {self.string_of_tags}")
+    self.logger.log(logging.DEBUG, f"Sending the following tags to the main process: {self.string_of_tags}")
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
     self.start_time = time.time()
