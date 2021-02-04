@@ -31,12 +31,15 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
     logger.log(logging.DEBUG, "Running the location finder function in production mode")
     while time.time() < time_end:
       x = serial_device.readline()
-      y = x[:-2].decode('utf-8')
-      if y.find("RMC") > 0:
-        message = pynmea2.parse(str(y))
-        latitude = message.latitude
-        longitude = message.longitude
-        logger.log(logging.DEBUG, f"Got location details as: latitude -> {latitude}, longitude -> {longitude}")
+      try:
+        y = x[:-2].decode('utf-8')
+        if y.find("RMC") > 0:
+          message = pynmea2.parse(str(y))
+          latitude = message.latitude
+          longitude = message.longitude
+          logger.log(logging.DEBUG, f"Got location details as: latitude -> {latitude}, longitude -> {longitude}")
+      except UnicodeDecodeError as err:
+        pass
 
     gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
 

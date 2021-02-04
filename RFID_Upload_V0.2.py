@@ -281,7 +281,7 @@ class TagReader(Process):
           self.tag_hex_list.clear()
           self.should_send_back_tag_values = False
           self.start_time = time.time()
-        elif input_queue_string == "QUIT":
+        elif input_queue_string is None:
           self.logger.log(logging.DEBUG, "Exiting the tag_reader process")
           should_exit_loop = True
 
