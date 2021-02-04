@@ -383,7 +383,7 @@ class DisplayTagIdGUI(Process):
       self.canvas.delete("text_to_be_shown")
       self.root.update()
     except Exception as err:
-      self.logger.log(logging.ERROR, "The canvas could not be cleared. {err}")
+      self.logger.log(logging.ERROR, f"The canvas could not be cleared. {err}")
 
   def run_loop(self):
     """
