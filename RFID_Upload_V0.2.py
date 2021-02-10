@@ -320,7 +320,12 @@ class TagReader(Process):
           tag_bytes_list_for_device_2.clear() # Clear the bytes from the RFID tag read in preparation for the next one
     
     # Once the loop exits, perform clean up and close serial ports
+    self.serial_device_1.flush()
+    self.serial_device_1.reset_input_buffer()
     self.serial_device_1.close()
+
+    self.serial_device_2.flush()
+    self.serial_device_2.reset_input_buffer()
     self.serial_device_2.close()
 
   def run(self):
