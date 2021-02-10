@@ -70,6 +70,7 @@ def write_secrets_to_env_file(secrets: dict):
             for key, value in secrets.items():
                 string_to_write = f"{key}={value}\n"   
                 env_file.write(string_to_write)
+        print('Done writing the env file successfully')
     except Exception as err:
         print("Error while writing the .env file")
         print(err)
