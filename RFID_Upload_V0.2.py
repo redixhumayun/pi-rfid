@@ -436,13 +436,13 @@ class DisplayTagIdGUI(Process):
     """
     self.root = tk.Tk()
     self.canvas = tk.Canvas(self.root, bg="white",
-                            width=800,
-                            height=450)
+                            width=1200,
+                            height=800)
     self.canvas.pack(side=tk.TOP)
     scan_button = ttk.Button(self.root, text="Scan", command=self.scan)
     upload_button = ttk.Button(self.root, text="Upload", command=self.upload)
     scan_button.pack(side=tk.RIGHT)
-    upload_button.pack(side=tk.RIGHT)
+    upload_button.pack(side=tk.LEFT)
     self.root.protocol("WM_DELETE_WINDOW", self.close_window)
     self.root.after(900, self.run_loop)
     tk.mainloop()
