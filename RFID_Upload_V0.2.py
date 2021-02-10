@@ -521,6 +521,7 @@ if __name__ == "__main__":
 
   # Get the secrets from AWS and write them to a file
   secrets = get_secret()
+  print(secrets)
   write_secrets_to_env_file(secrets=secrets)
 
   # This variable will determine whether the location should be checked or not
