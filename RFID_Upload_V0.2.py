@@ -439,8 +439,8 @@ class DisplayTagIdGUI(Process):
                             width=1200,
                             height=800)
     self.canvas.pack(side=tk.TOP)
-    scan_button = tk.Button(self.root, text="Scan", command=self.scan, height=2, width=10)
-    upload_button = tk.Button(self.root, text="Upload", command=self.upload, height=2, width=10)
+    scan_button = tk.Button(self.root, text="Scan", command=self.scan, height=5, width=15)
+    upload_button = tk.Button(self.root, text="Upload", command=self.upload, height=5, width=15)
     scan_button.pack(side=tk.RIGHT)
     upload_button.pack(side=tk.LEFT)
     self.root.protocol("WM_DELETE_WINDOW", self.close_window)
