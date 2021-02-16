@@ -22,7 +22,7 @@ from environment_variable import EnvironmentVariable
 # log the events to AWS CloudWatch
 def listener_configurer():
   root = logging.getLogger()
-  watchtower_handler = watchtower.CloudWatchLogHandler()
+  watchtower_handler = watchtower.CloudWatchLogHandler(log_group='ID1-watchtower')
   formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)-8s %(message)s')
   watchtower_handler.setFormatter(formatter)
   root.addHandler(watchtower_handler)
