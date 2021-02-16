@@ -66,7 +66,7 @@ class MakeApiRequest():
   def get(self, data: dict={}):
     """Makes a GET method API request"""
     try:
-      self.logger.log(logging.DEBUG, f"Making a GET request with the following data: {data}")
+      self.logger.log(logging.DEBUG, f"Making a GET request with the following data: {data} to the following endpoint: {self.url}")
       response = requests.get(self.url, params=data, headers=MakeApiRequest.headers)
       response.raise_for_status()
       return response.json()
