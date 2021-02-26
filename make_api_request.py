@@ -77,6 +77,9 @@ class MakeApiRequest():
       else:
         self.logger.log(logging.ERROR, "There was an error while making the GET request: {err}")
         raise err
+    except requests.exceptions.MissingSchema as err:
+      self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
+      raise err
 
   def post(self, data: dict):
     """Makes a POST method API request"""
@@ -92,3 +95,6 @@ class MakeApiRequest():
       else:
         self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
         raise err
+    except requests.exceptions.MissingSchema as err:
+      self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
+      raise err
