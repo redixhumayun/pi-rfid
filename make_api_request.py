@@ -75,10 +75,10 @@ class MakeApiRequest():
         self.logger.log(logging.ERROR, "There was a 401 authentication error while making the GET request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('GET', data)
       else:
-        self.logger.log(logging.ERROR, "There was an error while making the GET request: {err}")
+        self.logger.log(logging.ERROR, f"There was an error while making the GET request: {err}")
         raise err
     except requests.exceptions.MissingSchema as err:
-      self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
+      self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
       raise err
 
   def post(self, data: dict):
@@ -93,8 +93,8 @@ class MakeApiRequest():
         self.logger.log(logging.ERROR, "There was a 401 authentication error while making the POST request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('POST', data)
       else:
-        self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
+        self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
         raise err
     except requests.exceptions.MissingSchema as err:
-      self.logger.log(logging.ERROR, "There was an error while making the POST request: {err}")
+      self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
       raise err
