@@ -179,18 +179,10 @@ class TagReader(Process):
     binary_tag_value: str = bin(int(tag_value, 16))[2:].zfill(96)  # This line converts from hex -> int -> bin, removes the 0b at the beginning and then zfills to get 96 bits
 
     binary_header: str = binary_tag_value[0:8]
-    binary_filter_value: str = binary_tag_value[8:11]
-    binary_partition: str = binary_tag_value[11:14]
     binary_company_prefix: str = binary_tag_value[14:34]
-    binary_item_reference: str = binary_tag_value[34:58]
-    binary_serial_value: str = binary_tag_value[58:]
 
     header: int = int(binary_header, 2)
-    filter_value: int = int(binary_filter_value, 2)
-    partition: int = int(binary_partition, 2)
     company_prefix: int = int(binary_company_prefix, 2)
-    item_reference: int = int(binary_item_reference, 2)
-    serial_value: int = int(binary_serial_value, 2)
 
     # All SGTIN values have an 8-bit header corresponding to 48
     if header != 48:
