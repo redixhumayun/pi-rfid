@@ -58,6 +58,7 @@ def get_secret():
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
             parsed_secret_values = json.loads(secret)
+            print(f"These are the parsed_secret_values: {parsed_secret_values}")
             return parsed_secret_values
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
@@ -72,5 +73,5 @@ def write_secrets_to_env_file(secrets: dict):
                 env_file.write(string_to_write)
         print('Done writing the env file successfully')
     except Exception as err:
-        print("Error while writing the .env file")
-        print(err)
+        print(f"Error while writing the .env file: {err}")
+        raise err
