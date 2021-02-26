@@ -532,6 +532,7 @@ if __name__ == "__main__":
     with open(filename, 'r') as f:
       location = f.readline()
   except FileNotFoundError:
+    print("The location.txt file was not found")
     should_check_location = True
 
   # Define a list to hold all the process references
