@@ -38,7 +38,7 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
           latitude = message.latitude
           longitude = message.longitude
           logger.log(logging.DEBUG, f"Got location details as: latitude -> {latitude}, longitude -> {longitude}")
-      except UnicodeDecodeError as err:
+      except UnicodeDecodeError:
         pass
 
     gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
