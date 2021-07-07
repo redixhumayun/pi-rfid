@@ -1,17 +1,12 @@
 #!/usr/bin/python3
 from os import path
 from multiprocessing import Process, Queue
-import time
-import sys
 import argparse
-import requests
 import logging, logging.handlers
 import watchtower
-from typing import Union, List
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
-from make_api_request import MakeApiRequest
 from random_number_generator import RandomNumberGenerator
 from environment_variable import EnvironmentVariable
 from select_location_gui import SelectLocationGUI
