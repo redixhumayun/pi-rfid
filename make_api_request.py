@@ -87,8 +87,6 @@ class MakeApiRequest():
   def post(self, data: dict):
     """Makes a POST method API request"""
     try:
-      epc = data['epc']
-      data = { 'location': 'random', 'epc': epc }
       self.logger.log(logging.DEBUG, f"Making a POST request with the following data: {data} to the following endpoint: {self.url}")
       response = requests.post(self.url, json=data, headers=MakeApiRequest.headers)
       response.raise_for_status()

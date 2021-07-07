@@ -496,7 +496,7 @@ if __name__ == "__main__":
   environment = parser.parse_args().environment
 
   # Get the secrets from AWS and write them to a file
-  secrets = get_secret()
+  secrets = get_secret(environment)
   write_secrets_to_env_file(secrets=secrets)
 
   # This variable will determine whether the location should be checked or not
