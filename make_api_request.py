@@ -1,6 +1,7 @@
 import requests
 import os
 import logging
+import json
 from dotenv import load_dotenv
 
 """
@@ -11,7 +12,7 @@ class MakeApiRequest():
   load_dotenv()
 
   # This will be a static variable for this class
-  headers = {'version': '4.0'}
+  headers = {'version': '5.0'}
 
   def __init__(self, url: str):
     # Load all the env variables
@@ -75,7 +76,9 @@ class MakeApiRequest():
         self.logger.log(logging.ERROR, "There was a 401 authentication error while making the GET request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('GET', data)
       else:
-        self.logger.log(logging.ERROR, f"There was an error while making the GET request: {err}")
+        error_response = json.loads(err.response.text)
+        error_message = error_response['message']
+        self.logger.log(logging.ERROR, f"There was an error while making the GET request: {error_message}")
         raise err
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the GET request: {err}")
@@ -84,6 +87,8 @@ class MakeApiRequest():
   def post(self, data: dict):
     """Makes a POST method API request"""
     try:
+      epc = data['epc']
+      data = { 'location': 'random', 'epc': epc }
       self.logger.log(logging.DEBUG, f"Making a POST request with the following data: {data} to the following endpoint: {self.url}")
       response = requests.post(self.url, json=data, headers=MakeApiRequest.headers)
       response.raise_for_status()
@@ -93,7 +98,9 @@ class MakeApiRequest():
         self.logger.log(logging.ERROR, "There was a 401 authentication error while making the POST request. Application will fetch a new token and retry the request")
         return self.authenticate_and_retry_request('POST', data)
       else:
-        self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
+        error_response = json.loads(err.response.text)
+        error_message = error_response['message']
+        self.logger.log(logging.ERROR, f"There was an error while making the POST request: {error_message}")
         raise err
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
