@@ -207,7 +207,6 @@ if __name__ == "__main__":
       break
     
     elif main_queue_value.find("TAGS") != -1:
-      print(main_queue_value)
       split_string = main_queue_value.split()
       number_of_tags = split_string[1]
       list_of_tags = split_string[2:]
