@@ -9,13 +9,13 @@ import requests
 import logging, logging.handlers
 import watchtower
 import tkinter as tk
-from random import random
 from tkinter import ttk, messagebox
 from typing import Union, List
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
 from make_api_request import MakeApiRequest
+from random_number_generator import RandomNumberGenerator
 from environment_variable import EnvironmentVariable
 
 # This method is used to configure the watchtower handler which will be used to
@@ -103,26 +103,32 @@ def upload_tags(queue: Queue, main_queue: Queue):
           logger.log(logging.ERROR, f"Error raised while uploading tags: {err}")
           main_queue.put("UPLOAD_FAIL")
 
-def random_number_generator(queue: Queue, main_queue: Queue):
-  logger = logging.getLogger('random_number_generator')
-  return_string: str = "TAGS:"
-  while True:
-    random_number: float = random()
-    return_string += f" {str(random_number)}"
-    if queue.qsize() > 0:
-      queue_value: Union[str, None] = queue.get()
-      logger.log(logging.DEBUG, f"Received {queue_value} from queue")
+# This method is used while testing to generate a random sequence
+# of numbers to replace EPC's
+# def random_number_generator(queue: Queue, main_queue: Queue):
+#   logger = logging.getLogger('random_number_generator')
+#   random_numbers_list: list = []
+#   return_string: str = ""
+#   while True:
+#     random_number: float = random()
+#     random_numbers_list.append(random_number)
+#     if queue.qsize() > 0:
+#       queue_value: Union[str, None] = queue.get()
+#       logger.log(logging.DEBUG, f"Received {queue_value} from queue")
       
-      if queue_value is None:
-        break
+#       if queue_value is None:
+#         break
       
-      if queue_value == "SCAN":
-        logger.log(logging.DEBUG, f"Returning {return_string} to main queue")
-        main_queue.put(return_string)
-        return_string = "TAGS:"
+#       if queue_value == "SCAN":
+#         return_string = f"TAGS: {str(len(random_numbers_list))} "
+#         for random_number in random_numbers_list:
+#           return_string += str(random_number) + " "
+#         logger.log(logging.DEBUG, f"Returning {return_string} to main queue")
+#         main_queue.put(return_string)
+#         return_string = ""
 
-    time.sleep(1)
-  logger.log(logging.DEBUG, "Exiting the random number generator process")
+#     time.sleep(1)
+#   logger.log(logging.DEBUG, "Exiting the random number generator process")
 
 class TagReader(Process):
   """
@@ -433,8 +439,8 @@ class DisplayTagIdGUI(Process):
     """
     self.root = tk.Tk()
     self.canvas = tk.Canvas(self.root, bg="white",
-                            width=1200,
-                            height=800)
+                            width=800,
+                            height=400)
     self.canvas.pack(side=tk.TOP)
     scan_button = tk.Button(self.root, text="Scan", command=self.scan, height=5, width=15)
     upload_button = tk.Button(self.root, text="Upload", command=self.upload, height=5, width=15)
@@ -611,7 +617,7 @@ if __name__ == "__main__":
     processes.append(read_tags_process)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
     read_tags_queue = Queue()
-    read_tags_process = Process(target=random_number_generator, args=(read_tags_queue, main_queue))
+    read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
     processes.append(read_tags_process)
   else:
     raise Exception('Unknown input for --env argument')
@@ -646,6 +652,7 @@ if __name__ == "__main__":
       break
     
     elif main_queue_value.find("TAGS") != -1:
+      print(main_queue_value)
       split_string = main_queue_value.split()
       number_of_tags = split_string[1]
       list_of_tags = split_string[2:]
