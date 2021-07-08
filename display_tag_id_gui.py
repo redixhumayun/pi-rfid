@@ -109,8 +109,8 @@ class DisplayTagIdGUI(Process):
     """
     self.root = tk.Tk()
     self.canvas = tk.Canvas(self.root, bg="white",
-                            width=800,
-                            height=400)
+                            width=1200,
+                            height=800)
     self.canvas.pack(side=tk.TOP)
     scan_button = tk.Button(self.root, text="Scan", command=self.scan, height=5, width=15)
     upload_button = tk.Button(self.root, text="Upload", command=self.upload, height=5, width=15)
