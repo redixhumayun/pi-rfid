@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 import logging
 import time
 import serial
+import sys
 
 class TagReader(Process):
   """
