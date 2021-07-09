@@ -6,10 +6,15 @@ import boto3
 import base64
 from botocore.exceptions import ClientError
 import json
+from environment_variable import EnvironmentVariable
 
-def get_secret():
+def get_secret(environment):
 
-    secret_name = "pi-rfid/env-variables"
+    #   Load the secrets based on environment
+    if environment == EnvironmentVariable.DEVELOPMENT.value:
+        secret_name = "pi-rfid/env-variables-test"
+    elif environment == EnvironmentVariable.PRODUCTION.value:
+        secret_name = "pi-rfid/env-variables"        
     region_name = "ap-south-1"
 
     # Create a Secrets Manager client
@@ -58,7 +63,6 @@ def get_secret():
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
             parsed_secret_values = json.loads(secret)
-            print(f"These are the parsed_secret_values: {parsed_secret_values}")
             return parsed_secret_values
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
