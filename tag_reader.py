@@ -48,6 +48,7 @@ class TagReader(Process):
     for tag_value in self.tag_hex_list:
       self.string_of_tags += tag_value + " "
     
+    print("TAGS: ", self.string_of_tags)
     self.main_queue.put("TAGS: " + self.string_of_tags)
     self.string_of_tags = ""
     self.start_time = time.time()
@@ -69,7 +70,7 @@ class TagReader(Process):
       return False
 
     # H&M's GS1 company prefix is 731422
-    if company_prefix != 731422:
+    if company_prefix != 731422 and company_prefix != 731430:
       return False
 
     return True
@@ -134,6 +135,7 @@ class TagReader(Process):
       if self.queue.qsize() > 0:
         input_queue_string = self.queue.get()
         if input_queue_string == "SCAN":
+          print("Pressed the scan button")
           # When the user clicks the scan button, clear the buffer
           # clear the bytes list and also clear previously stored EPC's
           self.logger.log(logging.DEBUG, "Clearing the bytes list for tags in preparation for another scan")
@@ -145,6 +147,7 @@ class TagReader(Process):
           self.should_send_back_tag_values = True
           self.start_time = time.time()
         elif input_queue_string == "UPLOAD":
+          print("Pressed the upload button")
           self.logger.log(logging.DEBUG, "Clearing the bytes list for tags in preparation for an upload")
           tag_bytes_list_for_device_1.clear()
           tag_bytes_list_for_device_2.clear()

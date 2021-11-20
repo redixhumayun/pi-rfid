@@ -13,6 +13,7 @@ from select_location_gui import SelectLocationGUI
 from display_tag_id_gui import DisplayTagIdGUI
 from tag_reader import TagReader
 from upload_tags import upload_tags
+from weighing_scale import WeighingScale
 
 # This method is used to configure the watchtower handler which will be used to
 # log the events to AWS CloudWatch
@@ -172,6 +173,10 @@ if __name__ == "__main__":
   else:
     raise Exception('Unknown input for --env argument')
 
+  weighing_queue = Queue()
+  weighing_process = WeighingScale(weighing_queue, main_queue)
+  processes.append(weighing_process)
+
   for process in processes:
     process.start()
 
@@ -183,6 +188,7 @@ if __name__ == "__main__":
       # Everytime the user hits scan, start a fresh read
       list_of_tags_to_upload.clear()
       read_tags_queue.put("SCAN")
+      weighing_queue.put("SCAN")
 
     elif main_queue_value == "UPLOAD":
       read_tags_queue.put("UPLOAD")
@@ -198,6 +204,7 @@ if __name__ == "__main__":
       # Pass in a sentinel value for all queues here
       read_tags_queue.put_nowait(None)
       upload_tags_queue.put_nowait(None)
+      weighing_queue.put_nowait(None)
       logging_queue.put_nowait(None)
       break
     
