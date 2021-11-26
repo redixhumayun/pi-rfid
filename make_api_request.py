@@ -12,7 +12,7 @@ class MakeApiRequest():
   load_dotenv()
 
   # This will be a static variable for this class
-  headers = {'version': '5.0'}
+  headers = {'version': '6.0'}
 
   def __init__(self, url: str):
     # Load all the env variables

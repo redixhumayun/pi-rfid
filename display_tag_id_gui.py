@@ -80,7 +80,7 @@ class DisplayTagIdGUI(Process):
         self.logger.log(logging.DEBUG, "Clearing canvas because user pressed scan")
         self.clear_canvas()
 
-      if input_value == "UPLOAD_SUCCESS":
+      elif input_value == "UPLOAD_SUCCESS":
         self.logger.log(logging.DEBUG, "Clearing canvas because the upload was successful")
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,

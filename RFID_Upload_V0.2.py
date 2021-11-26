@@ -173,9 +173,9 @@ if __name__ == "__main__":
   else:
     raise Exception('Unknown input for --env argument')
 
-  weighing_queue = Queue()
-  weighing_process = WeighingScale(weighing_queue, main_queue)
-  processes.append(weighing_process)
+  # weighing_queue = Queue()
+  # weighing_process = WeighingScale(weighing_queue, main_queue)
+  # processes.append(weighing_process)
 
   for process in processes:
     process.start()
@@ -186,9 +186,10 @@ if __name__ == "__main__":
     main_queue_value = main_queue.get(block=True)
     if main_queue_value == "SCAN":
       # Everytime the user hits scan, start a fresh read
+      print("Pressed the scan button")
       list_of_tags_to_upload.clear()
       read_tags_queue.put("SCAN")
-      weighing_queue.put("SCAN")
+      # weighing_queue.put("SCAN")
 
     elif main_queue_value == "UPLOAD":
       read_tags_queue.put("UPLOAD")
@@ -204,7 +205,7 @@ if __name__ == "__main__":
       # Pass in a sentinel value for all queues here
       read_tags_queue.put_nowait(None)
       upload_tags_queue.put_nowait(None)
-      weighing_queue.put_nowait(None)
+      # weighing_queue.put_nowait(None)
       logging_queue.put_nowait(None)
       break
     
