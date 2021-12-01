@@ -4,6 +4,7 @@ import time
 import serial
 import sys
 from make_api_request import MakeApiRequest
+from utils.utils import decide_carton_type
 
 class TagReader(Process):
   """
@@ -59,7 +60,10 @@ class TagReader(Process):
     This method is called to convert the EPC into product details via API request
     """
     api_request = MakeApiRequest('/fabship/product/rfid')
-    api_request.post({ 'epc': self.tag_hex_list })
+    decoded_product_details = api_request.get_request_with_body({ 'epc': self.tag_hex_list })
+    print(decoded_product_details)
+    decide_carton_type(decoded_product_details, 'perforated')
+
 
   def is_tag_valid(self, tag_value) -> bool:
     """
@@ -109,7 +113,8 @@ class TagReader(Process):
     # 2. The tag hex list actually has values
     # 3. The time lapsed has been atleast 2 seconds
     if self.should_send_back_tag_values == True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
-      self.send_tags_to_main_process()
+      self.decode_epc_tags_into_product_details()
+      # self.send_tags_to_main_process()
 
   def read_tag_bytes(self):
     """
