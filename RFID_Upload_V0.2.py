@@ -4,16 +4,18 @@ from multiprocessing import Process, Queue
 import argparse
 import logging, logging.handlers
 import watchtower
+from display.display_enums import DisplayEnums
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
 from random_number_generator import RandomNumberGenerator
 from environment_variable import EnvironmentVariable
 from select_location_gui import SelectLocationGUI
-from display_tag_id_gui import DisplayTagIdGUI
-from tag_reader import TagReader
+from display.display_tag_id_gui import DisplayTagIdGUI
+from tag_reader.tag_reader import TagReader
 from upload_tags import upload_tags
-from weighing_scale import WeighingScale
+from weighing_scale.weighing_scale import WeighingScale
+from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
 # This method is used to configure the watchtower handler which will be used to
 # log the events to AWS CloudWatch
@@ -173,49 +175,60 @@ if __name__ == "__main__":
   else:
     raise Exception('Unknown input for --env argument')
 
-  # weighing_queue = Queue()
-  # weighing_process = WeighingScale(weighing_queue, main_queue)
-  # processes.append(weighing_process)
+  weighing_queue = Queue()
+  weighing_process = WeighingScale(weighing_queue, main_queue)
+  processes.append(weighing_process)
 
   for process in processes:
     process.start()
 
   list_of_tags_to_upload = []
+  carton_weight = 0
 
   while True:
     main_queue_value = main_queue.get(block=True)
-    if main_queue_value == "SCAN":
+    if main_queue_value == DisplayEnums.SCAN.value:
       # Everytime the user hits scan, start a fresh read
-      print("Pressed the scan button")
       list_of_tags_to_upload.clear()
       read_tags_queue.put("SCAN")
-      # weighing_queue.put("SCAN")
+      weighing_queue.put(WeighingScaleEnums.START_WEIGHING)
 
-    elif main_queue_value == "UPLOAD":
+    elif main_queue_value == DisplayEnums.UPLOAD.value:
       read_tags_queue.put("UPLOAD")
       upload_tags_queue.put(list_of_tags_to_upload)
 
     elif main_queue_value == "UPLOAD_SUCCESS":
-      display_tag_id_gui_queue.put("UPLOAD SUCCESSFUL")
+      display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
     
     elif main_queue_value == "UPLOAD_FAIL":
-      display_tag_id_gui_queue.put("UPLOAD_FAIL")
+      display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
+    
+    # elif main_queue_value == WeighingScaleEnums.WEIGHT_VALUE_READ:
+    #   carton_weight = 
 
-    elif main_queue_value == "QUIT":
+    elif main_queue_value == DisplayEnums.QUIT.value:
       # Pass in a sentinel value for all queues here
       read_tags_queue.put_nowait(None)
       upload_tags_queue.put_nowait(None)
-      # weighing_queue.put_nowait(None)
+      weighing_queue.put_nowait(None)
       logging_queue.put_nowait(None)
       break
     
-    elif main_queue_value.find("TAGS") != -1:
-      split_string = main_queue_value.split()
-      number_of_tags = split_string[1]
-      list_of_tags = split_string[2:]
-      display_tag_id_gui_queue.put(number_of_tags)
-      list_of_tags_to_upload.extend(list_of_tags)
-      # Make the list unique
+    elif isinstance(main_queue_value, dict):
+      # This means that the values are the tags and carton type
+      tags_list = main_queue_value['tags']
+      carton_type = main_queue_value['carton_type']
+      split_string = tags_list.split()
+      number_of_tags = split_string[0]
+      list_of_tags = split_string[1:]
+      display_tag_id_gui_queue.put({ 
+        'type': DisplayEnums.SHOW_SCAN_DATA.value, 
+        'data': {
+          'tags': number_of_tags, 
+          'carton_type': carton_type 
+        }
+      })
+      # Make the list of tags unique
       list_of_tags_to_upload = list(set(list_of_tags_to_upload))
   
   for process in processes:

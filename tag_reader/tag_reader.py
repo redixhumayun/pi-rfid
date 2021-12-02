@@ -4,7 +4,9 @@ import time
 import serial
 import sys
 from make_api_request import MakeApiRequest
-from utils.utils import decide_carton_type
+from carton.decide_carton_type import decide_carton_type
+from carton.carton_perforation import CartonPerforation
+from tag_reader.tag_reader_enums import TagReaderEnums
 
 class TagReader(Process):
   """
@@ -42,7 +44,7 @@ class TagReader(Process):
     self.start_time = 0
     self.logger = logging.getLogger('tag_reader')
 
-  def send_tags_to_main_process(self):
+  def send_tags_to_main_process(self, carton_type):
     """
     This method is called to return the list of tags to the main process
     """
@@ -50,8 +52,14 @@ class TagReader(Process):
     for tag_value in self.tag_hex_list:
       self.string_of_tags += tag_value + " "
     
-    print("TAGS: ", self.string_of_tags)
-    self.main_queue.put("TAGS: " + self.string_of_tags)
+    self.main_queue.put({
+      'type': TagReaderEnums.DONE_READING_TAGS,
+      'data': {
+        'carton_type': carton_type,
+        'tags': self.string_of_tags
+      }
+    })
+
     self.string_of_tags = ""
     self.start_time = time.time()
 
@@ -62,8 +70,8 @@ class TagReader(Process):
     api_request = MakeApiRequest('/fabship/product/rfid')
     decoded_product_details = api_request.get_request_with_body({ 'epc': self.tag_hex_list })
     print(decoded_product_details)
-    decide_carton_type(decoded_product_details, 'perforated')
-
+    carton_type = decide_carton_type(decoded_product_details, CartonPerforation.PERFORATED.value)
+    return carton_type
 
   def is_tag_valid(self, tag_value) -> bool:
     """
@@ -113,8 +121,8 @@ class TagReader(Process):
     # 2. The tag hex list actually has values
     # 3. The time lapsed has been atleast 2 seconds
     if self.should_send_back_tag_values == True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
-      self.decode_epc_tags_into_product_details()
-      # self.send_tags_to_main_process()
+      carton_type = self.decode_epc_tags_into_product_details()
+      self.send_tags_to_main_process(carton_type)
 
   def read_tag_bytes(self):
     """

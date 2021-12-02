@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 import logging
 import tkinter as tk
 from tkinter import ttk, messagebox
+from display_enums import DisplayEnums
 
 class DisplayTagIdGUI(Process):
   """
@@ -30,21 +31,21 @@ class DisplayTagIdGUI(Process):
     This method is called when the scan button is pressed
     """
     self.logger.log(logging.DEBUG, "The user pressed scan")
-    self.main_queue.put("SCAN")
+    self.main_queue.put(DisplayEnums.SCAN.value)
   
   def upload(self):
     """
     This method is called when the upload button is pressed
     """
     self.logger.log(logging.DEBUG, "The user pressed upload")
-    self.main_queue.put("UPLOAD")
+    self.main_queue.put(DisplayEnums.UPLOAD.value)
 
   def close_window(self):
     """
     This method is called when the close button is pressed
     """
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
-      self.main_queue.put("QUIT")
+      self.main_queue.put(DisplayEnums.QUIT.value)
       self.logger.log(logging.DEBUG, "The user pressed quit")
       self.root.destroy()
 
@@ -76,18 +77,18 @@ class DisplayTagIdGUI(Process):
       input_value = self.queue.get()
 
       # Check if the scan button has been clicked
-      if input_value == "SCAN":
+      if input_value == DisplayEnums.SCAN.value:
         self.logger.log(logging.DEBUG, "Clearing canvas because user pressed scan")
         self.clear_canvas()
 
-      elif input_value == "UPLOAD_SUCCESS":
+      elif input_value == DisplayEnums.UPLOAD_SUCCESS.value:
         self.logger.log(logging.DEBUG, "Clearing canvas because the upload was successful")
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
                                       font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
         self.root.update()
         
-      elif input_value == "UPLOAD_FAIL":
+      elif input_value == DisplayEnums.UPLOAD_FAIL.value:
         self.logger.log(logging.DEBUG, "Clearing canvas because the upload failed")
         self.clear_canvas()
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
@@ -95,10 +96,14 @@ class DisplayTagIdGUI(Process):
         self.root.update()
       
       # If the value is none of the above, then it must be the list of tags to display
-      else:
+      elif isinstance(input_value, dict) and input_value['type'] == DisplayEnums.SHOW_SCAN_DATA.value:
         self.clear_canvas()
+        number_of_tags = input_value['data']['tags']
+        carton_type = input_value['data']['carton_type']
         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                      font="Helvetica 40 bold", text=input_value, tag="text_to_be_shown")
+                                        font="Helvetica 40 bold", text=number_of_tags, tag="text_to_be_shown")
+        self.canvas.create_text(100, 200, fill="Black", anchor=tk.NW,
+                                        font="Helvetica 40 bold", text=carton_type, tag="text_to_be_shown")
         self.root.update()
     self.root.after(300, self.run_loop)
 

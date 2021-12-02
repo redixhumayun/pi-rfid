@@ -2,6 +2,8 @@ from multiprocessing import Process, Queue
 import serial
 import logging
 
+from weighing_scale_enums import WeighingScaleEnums
+
 class WeighingScale(Process):
   def __init__(self, queue: Queue, main_queue: Queue):
     Process.__init__(self)
@@ -20,7 +22,7 @@ class WeighingScale(Process):
     while should_exit_loop is False:
       if self.queue.qsize() > 0:
         input_queue_string = self.queue.get()
-        if input_queue_string == "SCAN":
+        if input_queue_string == WeighingScaleEnums.START_WEIGHING:
           is_weight_read = False
           print("Reading weight")
           while is_weight_read is False:
@@ -47,19 +49,3 @@ class WeighingScale(Process):
 
   def run(self):
     self.read_weight()
-# def weighing_scale_test():
-#   try:
-#     serial_device_1 = serial.Serial('/dev/ttyUSB2', 9600, timeout=0.5)
-#   except serial.serialutil.SerialException as err:
-#     raise err
-  
-#   while True:
-#     bytes = serial_device_1.readline()
-#     print(bytes)
-#     print(bytes.decode('ascii'))
-
-#   serial_device_1.close()
-
-# if __name__ == "__main__":
-#   print("Running")
-#   weighing_scale_test()
