@@ -37,8 +37,15 @@ class WeighingScale(Process):
             if self.weight > 0:
               is_weight_read = True
               print('Weight: ', self.weight)
+              self.main_queue.put({
+                'type': WeighingScaleEnums.WEIGHT_VALUE_READ,
+                'data': {
+                  'weight': self.weight
+                }
+              })
 
           print("Done reading the weight")
+          self.weight = 0
         elif input_queue_string is None:
           self.logger.log(logging.DEBUG, "Exiting the weighing process")
           should_exit_loop = True

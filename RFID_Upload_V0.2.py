@@ -13,6 +13,7 @@ from environment_variable import EnvironmentVariable
 from select_location_gui import SelectLocationGUI
 from display.display_tag_id_gui import DisplayTagIdGUI
 from tag_reader.tag_reader import TagReader
+from tag_reader.tag_reader_enums import TagReaderEnums
 from upload_tags import upload_tags
 from weighing_scale.weighing_scale import WeighingScale
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
@@ -202,9 +203,6 @@ if __name__ == "__main__":
     
     elif main_queue_value == "UPLOAD_FAIL":
       display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
-    
-    # elif main_queue_value == WeighingScaleEnums.WEIGHT_VALUE_READ:
-    #   carton_weight = 
 
     elif main_queue_value == DisplayEnums.QUIT.value:
       # Pass in a sentinel value for all queues here
@@ -215,21 +213,28 @@ if __name__ == "__main__":
       break
     
     elif isinstance(main_queue_value, dict):
-      # This means that the values are the tags and carton type
-      tags_list = main_queue_value['tags']
-      carton_type = main_queue_value['carton_type']
-      split_string = tags_list.split()
-      number_of_tags = split_string[0]
-      list_of_tags = split_string[1:]
-      display_tag_id_gui_queue.put({ 
-        'type': DisplayEnums.SHOW_SCAN_DATA.value, 
-        'data': {
-          'tags': number_of_tags, 
-          'carton_type': carton_type 
-        }
-      })
-      # Make the list of tags unique
-      list_of_tags_to_upload = list(set(list_of_tags_to_upload))
+      if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS:  
+        # This means that the values are the tags and carton type
+        data = main_queue_value['data']
+        tags_list = data['tags']
+        carton_type = data['carton_type']
+        split_string = tags_list.split()
+        number_of_tags = split_string[0]
+        list_of_tags = split_string[1:]
+        display_tag_id_gui_queue.put({ 
+          'type': DisplayEnums.SHOW_SCAN_DATA.value, 
+          'data': {
+            'tags': number_of_tags, 
+            'carton_type': carton_type 
+          }
+        })
+        # Make the list of tags unique
+        list_of_tags_to_upload = list(set(list_of_tags_to_upload))
+      elif main_queue_value['type'] == WeighingScaleEnums.WEIGHT_VALUE_READ:
+        # This means that the values are the weight of the carton
+        data = main_queue_value['data']
+        carton_weight = data['carton_weight']
+      
   
   for process in processes:
     logging_listener.join()
