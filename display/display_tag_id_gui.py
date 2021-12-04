@@ -1,9 +1,10 @@
 from multiprocessing import Process, Queue
 import logging
 import tkinter as tk
+from tkinter import *
 from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
-from display_enums import DisplayEnums
+from display.display_enums import DisplayEnums
 
 
 class DisplayTagIdGUI(Process):
@@ -116,13 +117,15 @@ class DisplayTagIdGUI(Process):
 
     def draw_ui(self):
         self.root.maxsize(900, 600)
-        self.root.config(bg='skyblue')
         left_frame = Frame(self.root, width=200, height=400, bg='grey')
         left_frame.grid(row=0, column=0)
         right_frame = Frame(self.root, width=650, height=400, bg='grey')
         right_frame.grid(row=0, column=1)
         
-        #   Create the labels for the left grid
+        #   Create the variables for the checkboxes
+        create_barcode_
+
+        #   Create the checkboxes for the left grid
         carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
                                         variable=1,
                                         onvalue=1,
@@ -144,8 +147,10 @@ class DisplayTagIdGUI(Process):
                                         width=10,
                                         state=DISABLED)
         
-        self.canvas = Canvas(right_frame, bg="white", width=650, height=350)
-        self.canvas.pack(side=TOP)
+        carton_barcode_checkbox.grid(row=0, column=0)
+        tags_checkbox.grid(row=1, column=0, sticky=(E, W))
+        weight_checkbox.grid(row=2, column=0)
+        
         scan_button = Button(right_frame, text="Scan", command=self.scan, height=5, width=15)
         upload_button = Button(right_frame, text="Upload", command=self.upload, height=5, width=15)
         scan_button.pack(side=RIGHT),

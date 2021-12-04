@@ -2,7 +2,7 @@ from multiprocessing import Process, Queue
 import serial
 import logging
 
-from weighing_scale_enums import WeighingScaleEnums
+from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
 class WeighingScale(Process):
   def __init__(self, queue: Queue, main_queue: Queue):

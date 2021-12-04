@@ -77,8 +77,11 @@ if __name__ == "__main__":
   environment = parser.parse_args().environment
 
   # Get the secrets from AWS and write them to a file
-  secrets = get_secret(environment)
-  write_secrets_to_env_file(secrets=secrets)
+  # try:
+  #   secrets = get_secret(environment)
+  # except Exception as e:
+  #   raise e
+  # write_secrets_to_env_file(secrets=secrets)
 
   # This variable will determine whether the location should be checked or not
   should_check_location = False
@@ -97,6 +100,9 @@ if __name__ == "__main__":
 
   # Define a list to hold all the process references
   processes: list = []
+
+  # Define a list to hold all the queues for the sub-processes
+  queues: list = []
 
   # Create the main queue that will be used for parent child communication
   main_queue = Queue()
@@ -157,11 +163,13 @@ if __name__ == "__main__":
   display_tag_id_gui_queue = Queue()
   display_tag_id_gui_process = DisplayTagIdGUI(display_tag_id_gui_queue, main_queue)
   processes.append(display_tag_id_gui_process)
+  queues.append(display_tag_id_gui_queue)
 
   # Create the queue and process associated with uploading tags
   upload_tags_queue = Queue()
   upload_tags_process = Process(target=upload_tags, args=(upload_tags_queue, main_queue))
   processes.append(upload_tags_process)
+  queues.append(upload_tags_queue)
 
   # Decide based on the environment variable passed in which process to launch
   # Either the tag reader process or the random number generator process
@@ -169,16 +177,21 @@ if __name__ == "__main__":
     read_tags_queue = Queue()
     read_tags_process = TagReader(read_tags_queue, main_queue)
     processes.append(read_tags_process)
+    queues.append(read_tags_queue)
+
+    weighing_queue = Queue()
+    weighing_process = WeighingScale(weighing_queue, main_queue)
+    processes.append(weighing_process)
+    queues.append(weighing_queue)
   elif environment == EnvironmentVariable.DEVELOPMENT.value:
     read_tags_queue = Queue()
     read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
     processes.append(read_tags_process)
+    queues.append(read_tags_queue)
   else:
     raise Exception('Unknown input for --env argument')
 
-  weighing_queue = Queue()
-  weighing_process = WeighingScale(weighing_queue, main_queue)
-  processes.append(weighing_process)
+  
 
   for process in processes:
     process.start()
@@ -205,11 +218,8 @@ if __name__ == "__main__":
       display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     elif main_queue_value == DisplayEnums.QUIT.value:
-      # Pass in a sentinel value for all queues here
-      read_tags_queue.put_nowait(None)
-      upload_tags_queue.put_nowait(None)
-      weighing_queue.put_nowait(None)
-      logging_queue.put_nowait(None)
+      for queue in queues:
+        queue.put_nowait(None)
       break
     
     elif isinstance(main_queue_value, dict):

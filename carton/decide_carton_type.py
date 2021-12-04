@@ -1,5 +1,5 @@
-from carton_type import CartonType
-from carton_perforation import CartonPerforation
+from carton.carton_type import CartonType
+from carton.carton_perforation import CartonPerforation
 
 def decide_carton_type(product_details_in_carton, carton_type):
   """
