@@ -1,7 +1,8 @@
 from multiprocessing import Process, Queue
 import logging
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
+from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display_enums import DisplayEnums
 
 
@@ -22,6 +23,7 @@ class DisplayTagIdGUI(Process):
           main process
         """
         Process.__init__(self)
+        self.root = tk.Tk()
         self.queue = queue
         self.main_queue = main_queue
         self.action_to_perform = None
@@ -112,22 +114,65 @@ class DisplayTagIdGUI(Process):
                 self.root.update()
         self.root.after(300, self.run_loop)
 
+    def draw_ui(self):
+        self.root.maxsize(900, 600)
+        self.root.config(bg='skyblue')
+        left_frame = Frame(self.root, width=200, height=400, bg='grey')
+        left_frame.grid(row=0, column=0)
+        right_frame = Frame(self.root, width=650, height=400, bg='grey')
+        right_frame.grid(row=0, column=1)
+        
+        #   Create the labels for the left grid
+        carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
+                                        variable=1,
+                                        onvalue=1,
+                                        offvalue=0,
+                                        width=10,
+                                        state=DISABLED)
+        
+        tags_checkbox = Checkbutton(left_frame, text="RFID Tags",
+                                        variable=0,
+                                        onvalue=1,
+                                        offvalue=0,
+                                        width=10,
+                                        state=DISABLED)
+        
+        weight_checkbox = Checkbutton(left_frame, text="Carton Weight",
+                                        variable=1,
+                                        onvalue=1,
+                                        offvalue=0,
+                                        width=10,
+                                        state=DISABLED)
+        
+        self.canvas = Canvas(right_frame, bg="white", width=650, height=350)
+        self.canvas.pack(side=TOP)
+        scan_button = Button(right_frame, text="Scan", command=self.scan, height=5, width=15)
+        upload_button = Button(right_frame, text="Upload", command=self.upload, height=5, width=15)
+        scan_button.pack(side=RIGHT),
+        upload_button.pack(side=LEFT)
+
+
+        self.root.protocol("WM_DELETE_WINDOW", self.close_window)
+        self.root.after(900, self.run_loop)
+        tk.mainloop()
+
     def run(self):
         """
         This method is required to be implemented by any class
         that sub-classes multiprocessing.Process
         """
-        self.root = tk.Tk()
-        self.canvas = tk.Canvas(self.root, bg="white",
-                                width=800,
-                                height=400)
-        self.canvas.pack(side=tk.TOP)
-        scan_button = tk.Button(self.root, text="Scan",
-                                command=self.scan, height=5, width=15)
-        upload_button = tk.Button(
-            self.root, text="Upload", command=self.upload, height=5, width=15)
-        scan_button.pack(side=tk.RIGHT)
-        upload_button.pack(side=tk.LEFT)
-        self.root.protocol("WM_DELETE_WINDOW", self.close_window)
-        self.root.after(900, self.run_loop)
-        tk.mainloop()
+        self.draw_ui()
+        # self.root = tk.Tk()
+        # self.canvas = tk.Canvas(self.root, bg="white",
+        #                         width=800,
+        #                         height=400)
+        # self.canvas.pack(side=tk.TOP)
+        # scan_button = tk.Button(self.root, text="Scan",
+        #                         command=self.scan, height=5, width=15)
+        # upload_button = tk.Button(
+        #     self.root, text="Upload", command=self.upload, height=5, width=15)
+        # scan_button.pack(side=tk.RIGHT)
+        # upload_button.pack(side=tk.LEFT)
+        # self.root.protocol("WM_DELETE_WINDOW", self.close_window)
+        # self.root.after(900, self.run_loop)
+        # tk.mainloop()

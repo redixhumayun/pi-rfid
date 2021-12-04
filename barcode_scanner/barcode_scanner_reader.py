@@ -11,6 +11,7 @@ class BarcodeScannerReader(Process):
     barcode scanner connected to the client
     """
     def __init__(self, queue: Queue, main_queue: Queue):
+        Process.__init__(self)
         self.queue = queue
         self.main_queue = main_queue
         self.scanner = Scanner('/dev/hidraw0')
