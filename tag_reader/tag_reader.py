@@ -166,7 +166,7 @@ class TagReader(Process):
             # Do this because queue.get() is a blocking call
             if self.queue.qsize() > 0:
                 input_queue_string = self.queue.get()
-                if input_queue_string == "SCAN":
+                if input_queue_string == TagReaderEnums.START_READING_TAGS.value:
                     # When the user clicks the scan button, clear the buffer
                     # clear the bytes list and also clear previously stored EPC's
                     self.logger.log(

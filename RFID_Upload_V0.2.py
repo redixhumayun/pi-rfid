@@ -8,12 +8,12 @@ from display.display_enums import DisplayEnums
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
-from random_number_generator import RandomNumberGenerator
 from environment_variable import EnvironmentVariable
 from select_location_gui import SelectLocationGUI
 from display.display_tag_id_gui import DisplayTagIdGUI
 from tag_reader.tag_reader import TagReader
 from tag_reader.tag_reader_enums import TagReaderEnums
+from tag_reader.random_number_generator import RandomNumberGenerator
 from upload_tags import upload_tags
 from weighing_scale.weighing_scale import WeighingScale
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     if main_queue_value == DisplayEnums.SCAN.value:
       # Everytime the user hits scan, start a fresh read
       list_of_tags_to_upload.clear()
-      read_tags_queue.put("SCAN")
+      read_tags_queue.put(TagReaderEnums.START_READING_TAGS.value)
       weighing_queue.put(WeighingScaleEnums.START_WEIGHING)
 
     elif main_queue_value == DisplayEnums.UPLOAD.value:

@@ -117,9 +117,9 @@ class DisplayTagIdGUI(Process):
 
     def draw_ui(self):
         self.root.maxsize(900, 600)
-        left_frame = Frame(self.root, width=200, height=400, bg='grey')
-        left_frame.grid(row=0, column=0)
-        right_frame = Frame(self.root, width=650, height=400, bg='grey')
+        left_frame = Frame(self.root, width=200, height=400)
+        left_frame.grid(row=0, column=0, padx=50)
+        right_frame = Frame(self.root, width=650, height=400)
         right_frame.grid(row=0, column=1)
         
         #   Create the variables for the checkboxes
@@ -132,40 +132,51 @@ class DisplayTagIdGUI(Process):
                                         variable=carton_barcode_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
-                                        width=10,
                                         state=DISABLED)
         
         tags_checkbox = Checkbutton(left_frame, text="RFID Tags",
                                         variable=tags_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
-                                        width=10,
                                         state=DISABLED)
         
         weight_checkbox = Checkbutton(left_frame, text="Carton Weight",
                                         variable=weight_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
-                                        width=10,
                                         state=DISABLED)
         
         carton_barcode_checkbox.grid(row=0, column=0, sticky=(E, W))
         tags_checkbox.grid(row=1, column=0, sticky=(E, W))
         weight_checkbox.grid(row=2, column=0, sticky=(E, W))
 
-        output_data_frame = Frame(right_frame, width=max, height=350)
+        output_data_frame = Frame(right_frame, width=650, height=350)
         output_data_frame.grid(row=0, column=0)
         
-        barcode_label = Label(output_data_frame, "Barcode")
-        barcode_label.grid(row=0, column=0)
-        barcode_output = Entry(output_data_frame)
-        barcode_output.grid(row=1, column=0)
-        
-        scan_button = Button(right_frame, text="Scan", command=self.scan, height=5, width=15)
-        upload_button = Button(right_frame, text="Upload", command=self.upload, height=5, width=15)
-        scan_button.pack(side=RIGHT),
-        upload_button.pack(side=LEFT)
+        barcode_label = Label(output_data_frame, text="Barcode")
+        barcode_label.grid(row=0, column=0, padx=25)
+        barcode_output = Label(output_data_frame, text="No result")
+        barcode_output.grid(row=0, column=1)
 
+        weight_label = Label(output_data_frame, text="Weight")
+        weight_label.grid(row=1, column=0, padx=25)
+        weight_output = Label(output_data_frame, text="No result")
+        weight_output.grid(row=1, column=1)
+
+        rfid_label = Label(output_data_frame, text="RFID Tags")
+        rfid_label.grid(row=2, column=0, padx=25)
+        rfid_output = Label(output_data_frame, text="No result")
+        rfid_output.grid(row=2, column=1)
+
+        carton_type_label = Label(output_data_frame, text="Carton Type")
+        carton_type_label.grid(row=3, column=0, padx=25)
+        carton_type_output = Label(output_data_frame, text="No result")
+        carton_type_output.grid(row=3, column=1)
+        
+        scan_button = Button(right_frame, text="Scan", command=self.scan)
+        upload_button = Button(right_frame, text="Upload", command=self.upload)
+        scan_button.grid(row=4, column=0, sticky=(N, S, E, W))
+        upload_button.grid(row=5, column=0, sticky=(N, S, E, W))
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_window)
         self.root.after(900, self.run_loop)
@@ -177,17 +188,3 @@ class DisplayTagIdGUI(Process):
         that sub-classes multiprocessing.Process
         """
         self.draw_ui()
-        # self.root = tk.Tk()
-        # self.canvas = tk.Canvas(self.root, bg="white",
-        #                         width=800,
-        #                         height=400)
-        # self.canvas.pack(side=tk.TOP)
-        # scan_button = tk.Button(self.root, text="Scan",
-        #                         command=self.scan, height=5, width=15)
-        # upload_button = tk.Button(
-        #     self.root, text="Upload", command=self.upload, height=5, width=15)
-        # scan_button.pack(side=tk.RIGHT)
-        # upload_button.pack(side=tk.LEFT)
-        # self.root.protocol("WM_DELETE_WINDOW", self.close_window)
-        # self.root.after(900, self.run_loop)
-        # tk.mainloop()
