@@ -208,7 +208,7 @@ if __name__ == "__main__":
       weighing_queue.put(WeighingScaleEnums.START_WEIGHING)
 
     elif main_queue_value == DisplayEnums.UPLOAD.value:
-      read_tags_queue.put("UPLOAD")
+      read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
       upload_tags_queue.put(list_of_tags_to_upload)
 
     elif main_queue_value == "UPLOAD_SUCCESS":

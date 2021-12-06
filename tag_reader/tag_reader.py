@@ -73,7 +73,6 @@ class TagReader(Process):
         api_request = MakeApiRequest('/fabship/product/rfid')
         decoded_product_details = api_request.get_request_with_body(
             {'epc': self.tag_hex_list})
-        print(decoded_product_details)
         carton_type = decide_carton_type(
             decoded_product_details, CartonPerforation.PERFORATED.value)
         return carton_type
@@ -178,7 +177,7 @@ class TagReader(Process):
                     self.tag_hex_list.clear()
                     self.should_send_back_tag_values = True
                     self.start_time = time.time()
-                elif input_queue_string == "UPLOAD":
+                elif input_queue_string == TagReaderEnums.CLEAR_TAG_DATA.value:
                     self.logger.log(
                         logging.DEBUG, "Clearing the bytes list for tags in preparation for an upload")
                     tag_bytes_list_for_device_1.clear()
