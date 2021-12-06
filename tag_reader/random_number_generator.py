@@ -2,9 +2,8 @@ from multiprocessing import Process, Queue
 import logging
 import time
 from random import randint
-from display.display_enums import DisplayEnums
 
-from tag_reader_enums import TagReaderEnums
+from tag_reader.tag_reader_enums import TagReaderEnums
 from carton.carton_type import CartonType
 
 
@@ -30,15 +29,16 @@ class RandomNumberGenerator(Process):
                     break
 
                 if queue_value == TagReaderEnums.START_READING_TAGS.value:
-                    self.return_string = f"TAGS: {str(len(self.random_numbers_list))} "
+                    # self.return_string = f"TAGS: {str(len(self.random_numbers_list))} "
+                    self.return_string = str(len(self.random_numbers_list)) + " "
                     for random_number in self.random_numbers_list:
                         self.return_string += str(random_number) + " "
                     self.logger.log(
                         logging.DEBUG, f"Returning {self.return_string} to main queue")
                     self.main_queue.put({
-                        'type': DisplayEnums.SHOW_SCAN_DATA.value,
+                        'type': TagReaderEnums.DONE_READING_TAGS.value,
                         'data': {
-                            'tags': len(self.random_numbers_list),
+                            'tags': self.return_string,
                             'carton_type': CartonType.SOLID.value
                         }
                     })

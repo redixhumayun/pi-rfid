@@ -225,7 +225,7 @@ if __name__ == "__main__":
             # Everytime the user hits scan, start a fresh read
             list_of_tags_to_upload.clear()
             read_tags_queue.put(TagReaderEnums.START_READING_TAGS.value)
-            weighing_queue.put(WeighingScaleEnums.START_WEIGHING)
+            weighing_queue.put(WeighingScaleEnums.START_WEIGHING.value)
 
         elif main_queue_value == DisplayEnums.UPLOAD.value:
             read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
             break
 
         elif isinstance(main_queue_value, dict):
-            if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS:
+            if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS.value:
                 # This means that the values are the tags and carton type
                 data = main_queue_value['data']
                 tags_list = data['tags']
@@ -252,7 +252,7 @@ if __name__ == "__main__":
                 number_of_tags = split_string[0]
                 list_of_tags = split_string[1:]
                 display_tag_id_gui_queue.put({
-                    'type': DisplayEnums.SHOW_SCAN_DATA.value,
+                    'type': DisplayEnums.SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE.value,
                     'data': {
                         'tags': number_of_tags,
                         'carton_type': carton_type
@@ -260,10 +260,15 @@ if __name__ == "__main__":
                 })
                 # Make the list of tags unique
                 list_of_tags_to_upload = list(set(list_of_tags_to_upload))
-            elif main_queue_value['type'] == WeighingScaleEnums.WEIGHT_VALUE_READ:
-                # This means that the values are the weight of the carton
-                data = main_queue_value['data']
-                carton_weight = data['carton_weight']
+                
+            if main_queue_value['type'] == WeighingScaleEnums.WEIGHT_VALUE_READ.value:
+                carton_weight = main_queue_value['data']['weight']
+                display_tag_id_gui_queue.put({
+                    'type': DisplayEnums.SHOW_WEIGHT.value,
+                    'data': {
+                        'weight': carton_weight
+                    }
+                })
 
     for process in processes:
         logging_listener.join()

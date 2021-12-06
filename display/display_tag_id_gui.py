@@ -27,8 +27,9 @@ class DisplayTagIdGUI(Process):
         self.root = tk.Tk()
         self.queue = queue
         self.main_queue = main_queue
-        self.action_to_perform = None
         self.logger = logging.getLogger('display_tag_id_gui')
+
+        self.barcode_output = None
 
     def scan(self):
         """
@@ -72,48 +73,61 @@ class DisplayTagIdGUI(Process):
         Raises
         ------
         Exception
-          Raises a base Exception if a button that is neither scan nor upload
-          is clicked
+          Raises a base Exception if it receives an enum type it does not understand
         """
+
 
         # Check if the queue has any elements in it
         # Do this because queue.get() is a blocking call
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
-
-            # Check if the scan button has been clicked
-            if input_value == DisplayEnums.SCAN.value:
-                self.logger.log(
-                    logging.DEBUG, "Clearing canvas because user pressed scan")
-                self.clear_canvas()
-
-            elif input_value == DisplayEnums.UPLOAD_SUCCESS.value:
-                self.logger.log(
-                    logging.DEBUG, "Clearing canvas because the upload was successful")
-                self.clear_canvas()
-                self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                        font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
-                self.root.update()
-
-            elif input_value == DisplayEnums.UPLOAD_FAIL.value:
-                self.logger.log(
-                    logging.DEBUG, "Clearing canvas because the upload failed")
-                self.clear_canvas()
-                self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                        font="Helvetica 20 bold", text="UPLOAD FAILED", tag="text_to_be_shown")
-                self.root.update()
-
-            # If the value is none of the above, then it must be the list of tags to display
-            elif isinstance(input_value, dict) and input_value['type'] == DisplayEnums.SHOW_SCAN_DATA.value:
-                self.clear_canvas()
-                number_of_tags = input_value['data']['tags']
-                carton_type = input_value['data']['carton_type']
-                self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
-                                        font="Helvetica 40 bold", text=number_of_tags, tag="text_to_be_shown")
-                self.canvas.create_text(100, 200, fill="Black", anchor=tk.NW,
-                                        font="Helvetica 40 bold", text=carton_type, tag="text_to_be_shown")
-                self.root.update()
+            if isinstance(input_value, dict):
+                if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
+                    self.barcode_output['text'] = input_value['data']['barcode']
+                elif input_value['type'] == DisplayEnums.SHOW_WEIGHT.value:
+                    self.weight_output['text'] = input_value['data']['weight']
+                elif input_value['type'] == DisplayEnums.SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE.value:
+                    self.rfid_output['text'] = input_value['data']['tags']
+                    self.carton_type_output['text'] = input_value['data']['carton_type']
+                else:
+                    raise Exception('This type is not understood')
         self.root.after(300, self.run_loop)
+        # if self.queue.qsize() > 0:
+        #     input_value = self.queue.get()
+
+        #     # Check if the scan button has been clicked
+        #     if input_value == DisplayEnums.SCAN.value:
+        #         self.logger.log(
+        #             logging.DEBUG, "Clearing canvas because user pressed scan")
+        #         self.clear_canvas()
+
+        #     elif input_value == DisplayEnums.UPLOAD_SUCCESS.value:
+        #         self.logger.log(
+        #             logging.DEBUG, "Clearing canvas because the upload was successful")
+        #         self.clear_canvas()
+        #         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+        #                                 font="Helvetica 20 bold", text="UPLOAD SUCCESSFUL", tag="text_to_be_shown")
+        #         self.root.update()
+
+        #     elif input_value == DisplayEnums.UPLOAD_FAIL.value:
+        #         self.logger.log(
+        #             logging.DEBUG, "Clearing canvas because the upload failed")
+        #         self.clear_canvas()
+        #         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+        #                                 font="Helvetica 20 bold", text="UPLOAD FAILED", tag="text_to_be_shown")
+        #         self.root.update()
+
+        #     # If the value is none of the above, then it must be the list of tags to display
+        #     elif isinstance(input_value, dict) and input_value['type'] == DisplayEnums.SHOW_SCAN_DATA.value:
+        #         self.clear_canvas()
+        #         number_of_tags = input_value['data']['tags']
+        #         carton_type = input_value['data']['carton_type']
+        #         self.canvas.create_text(100, 100, fill="Black", anchor=tk.NW,
+        #                                 font="Helvetica 40 bold", text=number_of_tags, tag="text_to_be_shown")
+        #         self.canvas.create_text(100, 200, fill="Black", anchor=tk.NW,
+        #                                 font="Helvetica 40 bold", text=carton_type, tag="text_to_be_shown")
+        #         self.root.update()
+        # self.root.after(300, self.run_loop)
 
     def draw_ui(self):
         self.root.maxsize(900, 600)
@@ -128,50 +142,50 @@ class DisplayTagIdGUI(Process):
         weight_checkbox_variable = BooleanVar(value=False)
 
         #   Create the checkboxes for the left grid
-        carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
+        self.carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
                                         variable=carton_barcode_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
                                         state=DISABLED)
         
-        tags_checkbox = Checkbutton(left_frame, text="RFID Tags",
+        self.tags_checkbox = Checkbutton(left_frame, text="RFID Tags",
                                         variable=tags_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
                                         state=DISABLED)
         
-        weight_checkbox = Checkbutton(left_frame, text="Carton Weight",
+        self.weight_checkbox = Checkbutton(left_frame, text="Carton Weight",
                                         variable=weight_checkbox_variable,
                                         onvalue=1,
                                         offvalue=0,
                                         state=DISABLED)
         
-        carton_barcode_checkbox.grid(row=0, column=0, sticky=(E, W))
-        tags_checkbox.grid(row=1, column=0, sticky=(E, W))
-        weight_checkbox.grid(row=2, column=0, sticky=(E, W))
+        self.carton_barcode_checkbox.grid(row=0, column=0, sticky=(E, W))
+        self.tags_checkbox.grid(row=1, column=0, sticky=(E, W))
+        self.weight_checkbox.grid(row=2, column=0, sticky=(E, W))
 
         output_data_frame = Frame(right_frame, width=650, height=350)
         output_data_frame.grid(row=0, column=0)
         
         barcode_label = Label(output_data_frame, text="Barcode")
         barcode_label.grid(row=0, column=0, padx=25)
-        barcode_output = Label(output_data_frame, text="No result")
-        barcode_output.grid(row=0, column=1)
+        self.barcode_output = Label(output_data_frame, text="No result")
+        self.barcode_output.grid(row=0, column=1)
 
         weight_label = Label(output_data_frame, text="Weight")
         weight_label.grid(row=1, column=0, padx=25)
-        weight_output = Label(output_data_frame, text="No result")
-        weight_output.grid(row=1, column=1)
+        self.weight_output = Label(output_data_frame, text="No result")
+        self.weight_output.grid(row=1, column=1)
 
         rfid_label = Label(output_data_frame, text="RFID Tags")
         rfid_label.grid(row=2, column=0, padx=25)
-        rfid_output = Label(output_data_frame, text="No result")
-        rfid_output.grid(row=2, column=1)
+        self.rfid_output = Label(output_data_frame, text="No result")
+        self.rfid_output.grid(row=2, column=1)
 
         carton_type_label = Label(output_data_frame, text="Carton Type")
         carton_type_label.grid(row=3, column=0, padx=25)
-        carton_type_output = Label(output_data_frame, text="No result")
-        carton_type_output.grid(row=3, column=1)
+        self.carton_type_output = Label(output_data_frame, text="No result")
+        self.carton_type_output.grid(row=3, column=1)
         
         scan_button = Button(right_frame, text="Scan", command=self.scan)
         upload_button = Button(right_frame, text="Upload", command=self.upload)

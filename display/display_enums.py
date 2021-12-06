@@ -9,5 +9,7 @@ class DisplayEnums(Enum):
     UPLOAD = 'upload'
     UPLOAD_SUCCESS = 'upload success'
     UPLOAD_FAIL = 'upload fail'
-    SHOW_SCAN_DATA = 'show scan data'
+    SHOW_SCANNED_BARCODE = 'show scanned barcode'
+    SHOW_WEIGHT = 'show weight'
+    SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE = 'show number of tags and carton type'    
     QUIT = 'quit'
