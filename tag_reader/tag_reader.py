@@ -6,6 +6,7 @@ import sys
 from make_api_request import MakeApiRequest
 from carton.decide_carton_type import decide_carton_type
 from carton.carton_perforation import CartonPerforation
+from tag_reader.Entities.rfid_tag import RFIDTagEntity
 from tag_reader.tag_reader_enums import TagReaderEnums
 
 
@@ -40,14 +41,12 @@ class TagReader(Process):
         self.serial_device_1 = None
         self.serial_device_2 = None
         self.should_send_back_tag_values = False
-        # The bytes read from the serial device for an RFID tag will be stored in this list
-        self.tag_bytes_list = []
         self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
         self.string_of_tags = ""
         self.start_time = 0
         self.logger = logging.getLogger('tag_reader')
 
-    def send_tags_to_main_process(self, carton_type):
+    def send_tag_details_to_main_process(self, carton_type):
         """
         This method is called to return the list of tags to the main process
         """
@@ -77,58 +76,19 @@ class TagReader(Process):
             decoded_product_details, CartonPerforation.PERFORATED.value)
         return carton_type
 
-    def is_tag_valid(self, tag_value) -> bool:
-        """
-        This method is used to determine the validity of an EPC tag
-        """
-        binary_tag_value: str = bin(int(tag_value, 16))[2:].zfill(
-            96)  # This line converts from hex -> int -> bin, removes the 0b at the beginning and then zfills to get 96 bits
+    def read_tag_data(self, tag_bytes_list):
+        """This method is called to convert EPC bytes to hex values and add them to the list if valid"""
+        rfid_tag_entity = RFIDTagEntity()
+        tag_hex_value = RFIDTagEntity.convert_tag_from_bytes_to_hex(tag_bytes_list=tag_bytes_list)
 
-        binary_header: str = binary_tag_value[0:8]
-        binary_company_prefix: str = binary_tag_value[14:34]
-
-        header: int = int(binary_header, 2)
-        company_prefix: int = int(binary_company_prefix, 2)
-
-        # All SGTIN values have an 8-bit header corresponding to 48
-        if header != 48:
-            return False
-
-        # H&M's GS1 company prefix is 731422
-        if company_prefix != 731422 and company_prefix != 731430:
-            return False
-
-        return True
-
-    def convert_tags_to_hex(self, tag_bytes_list):
-        """
-        This method is called to convert a list of bytes into one complete
-        RFID tag
-        """
-
-        # Stores the hex value of the RFID tag being read
-        tag_hex_value = ""
-
-        for index, bytes_value in enumerate(tag_bytes_list):
-            # The assumption here is that the first 3 bytes and the last byte are just placeholders
-            if index > 3 and index < 16:
-                tag_hex_value += "{0:02X}".format(bytes_value)
-
-        if tag_hex_value not in self.tag_hex_list:
-            # Check if this is a valid EPC tag for H&M
-            if self.is_tag_valid(tag_hex_value) is True:
-                self.tag_hex_list.append(tag_hex_value)
-            else:
-                self.logger.log(
-                    logging.ERROR, f"This tag value {tag_hex_value} is not a valid EPC")
-
-        # Before sending tag values to the main process, check the following:
-        # 1. The boolean for this is set to True
-        # 2. The tag hex list actually has values
-        # 3. The time lapsed has been atleast 2 seconds
-        if self.should_send_back_tag_values == True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
-            carton_type = self.decode_epc_tags_into_product_details()
-            self.send_tags_to_main_process(carton_type)
+        if tag_hex_value in self.tag_hex_list:
+            #   Do nothing if the tag is already listed
+            return
+        
+        if rfid_tag_entity.is_tag_valid(tag_hex_value=tag_hex_value) is True:
+            self.tag_hex_list.append(tag_hex_value)
+        else:
+            self.logger.log(logging.ERROR, f"This tag value {tag_hex_value} is not a valid EPC")
 
     def read_tag_bytes(self):
         """
@@ -212,7 +172,7 @@ class TagReader(Process):
                 # One RFID tag has a sequence of 18 bytes
                 if len(tag_bytes_list_for_device_1) == 18:
                     should_read_tags_from_device_1 = False
-                    self.convert_tags_to_hex(
+                    self.read_tag_data(
                         tag_bytes_list=tag_bytes_list_for_device_1)
                     # Clear the bytes from the RFID tag read in preparation for the next one
                     tag_bytes_list_for_device_1.clear()
@@ -227,10 +187,18 @@ class TagReader(Process):
                 # One RFID tag has a sequence of 18 bytes
                 if len(tag_bytes_list_for_device_2) == 18:
                     should_read_tags_from_device_2 = False
-                    self.convert_tags_to_hex(
+                    self.read_tag_data(
                         tag_bytes_list=tag_bytes_list_for_device_2)
                     # Clear the bytes from the RFID tag read in preparation for the next one
                     tag_bytes_list_for_device_2.clear()
+
+            #   Before sending tag values to the main process, check the following:
+            #   1. The boolean for this is set to True
+            #   2. The tag hex list actually has values
+            #   3. The time lapsed has been at least 2 seconds
+            if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
+                carton_type = self.decode_epc_tags_into_product_details()
+                self.send_tag_details_to_main_process(carton_type=carton_type)
 
         # Once the loop exits, perform clean up and close serial ports
         self.serial_device_1.flush()
