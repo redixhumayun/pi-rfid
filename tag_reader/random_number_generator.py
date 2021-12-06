@@ -29,7 +29,6 @@ class RandomNumberGenerator(Process):
                     break
 
                 if queue_value == TagReaderEnums.START_READING_TAGS.value:
-                    # self.return_string = f"TAGS: {str(len(self.random_numbers_list))} "
                     self.return_string = str(len(self.random_numbers_list)) + " "
                     for random_number in self.random_numbers_list:
                         self.return_string += str(random_number) + " "

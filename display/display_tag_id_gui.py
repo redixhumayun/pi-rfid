@@ -5,7 +5,7 @@ from tkinter import *
 from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
-
+from display.generate_shipment_id import generate_shipment_id
 
 class DisplayTagIdGUI(Process):
     """
@@ -28,6 +28,7 @@ class DisplayTagIdGUI(Process):
         self.queue = queue
         self.main_queue = main_queue
         self.logger = logging.getLogger('display_tag_id_gui')
+        self.shipment_id = generate_shipment_id()
 
     def scan(self):
         """
@@ -63,6 +64,9 @@ class DisplayTagIdGUI(Process):
             self.logger.log(
                 logging.ERROR, f"The canvas could not be cleared. {err}")
 
+    def generate_new_shipment_id():
+        self.shipment_id = generate_shipment_id()
+
     def run_loop(self):
         """
         This method is used to run a loop every 900ms and is called
@@ -73,7 +77,6 @@ class DisplayTagIdGUI(Process):
         Exception
           Raises a base Exception if it receives an enum type it does not understand
         """
-
 
         # Check if the queue has any elements in it
         # Do this because queue.get() is a blocking call
@@ -97,10 +100,14 @@ class DisplayTagIdGUI(Process):
 
     def draw_ui(self):
         self.root.maxsize(900, 600)
+
+        shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
+        shipment_id_label.grid(row = 0, column = 0, columnspan=3)
+
         left_frame = Frame(self.root, width=200, height=400)
-        left_frame.grid(row=0, column=0, padx=50)
+        left_frame.grid(row=1, column=0, padx=50)
         right_frame = Frame(self.root, width=650, height=400)
-        right_frame.grid(row=0, column=1)
+        right_frame.grid(row=1, column=1)
         
         #   Create the variables for the checkboxes
         self.carton_barcode_checkbox_variable = BooleanVar(value=False)
