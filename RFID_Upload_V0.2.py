@@ -5,7 +5,6 @@ import argparse
 import logging
 import logging.handlers
 import watchtower
-from display.display_enums import DisplayEnums
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
 from location_finder import get_latitude_and_longitude, get_location
@@ -19,6 +18,11 @@ from upload_tags import upload_tags
 from weighing_scale.weighing_scale import WeighingScale
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 from weighing_scale.weighing_scale_test import WeighingScaleTest
+from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
+from display.display_enums import DisplayEnums
+from barcode_scanner.barcode_scanner_reader import BarcodeScannerReader
+from barcode_scanner.barcode_scanner_reader_test import BarcodeScannerReaderTest
+from upload_carton_details import upload_carton_details
 
 # This method is used to configure the watchtower handler which will be used to
 # log the events to AWS CloudWatch
@@ -229,6 +233,7 @@ if __name__ == "__main__":
     list_of_tags_to_upload = []
     carton_weight = 0
     carton_barcode = ''
+    carton_pack_type = None
 
     while True:
         main_queue_value = main_queue.get(block=True)
@@ -240,13 +245,12 @@ if __name__ == "__main__":
 
         elif main_queue_value == DisplayEnums.UPLOAD.value:
             read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
-            upload_tags_queue.put(list_of_tags_to_upload)
-
-        elif main_queue_value == "UPLOAD_SUCCESS":
-            display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
-
-        elif main_queue_value == "UPLOAD_FAIL":
-            display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
+            result = upload_carton_details(
+                list_of_tags_to_upload, carton_weight, carton_barcode, carton_pack_type)
+            if result is True:
+                display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
+            else:
+                display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
             for queue in queues:
