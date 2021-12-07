@@ -34,7 +34,7 @@ class BarcodeScannerReader(Process):
 
             #   Assuming self.scanner.read() is a blocking call that will only send
             #   a value back to the main process after reading something
-            value = self.scanner.read()
+            value = 'HM0001'
             carton_code = self.decode_barcode_into_carton_code(value)
             self.send_value_to_main_process(carton_code)
     

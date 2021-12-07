@@ -200,6 +200,11 @@ if __name__ == "__main__":
         weighing_process = WeighingScale(weighing_queue, main_queue)
         processes.append(weighing_process)
         queues.append(weighing_queue)
+
+        barcode_scanner_queue = Queue()
+        barcode_scanner_process = BarcodeScannerReader(barcode_scanner_queue, main_queue)
+        processes.append(barcode_scanner_process)
+        queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
         read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
@@ -210,6 +215,11 @@ if __name__ == "__main__":
         weighing_process = WeighingScaleTest(weighing_queue, main_queue)
         processes.append(weighing_process)
         queues.append(weighing_queue)
+
+        barcode_scanner_queue = Queue()
+        barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
+        processes.append(barcode_scanner_process)
+        queues.append(barcode_scanner_queue)
     else:
         raise Exception('Unknown input for --env argument')
 
@@ -218,6 +228,7 @@ if __name__ == "__main__":
 
     list_of_tags_to_upload = []
     carton_weight = 0
+    carton_barcode = ''
 
     while True:
         main_queue_value = main_queue.get(block=True)
@@ -244,7 +255,6 @@ if __name__ == "__main__":
 
         elif isinstance(main_queue_value, dict):
             if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS.value:
-                # This means that the values are the tags and carton type
                 data = main_queue_value['data']
                 tags_list = data['tags']
                 carton_type = data['carton_type']
@@ -267,6 +277,15 @@ if __name__ == "__main__":
                     'type': DisplayEnums.SHOW_WEIGHT.value,
                     'data': {
                         'weight': carton_weight
+                    }
+                })
+
+            if main_queue_value['type'] == BarcodeScannerEnums.CARTON_BARCODE_SCAN_VALUE.value:
+                carton_barcode = main_queue_value['data']['barcode']
+                display_tag_id_gui_queue.put({
+                    'type': DisplayEnums.SHOW_SCANNED_BARCODE.value,
+                    'data': {
+                        'barcode': carton_barcode
                     }
                 })
 
