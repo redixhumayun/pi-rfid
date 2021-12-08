@@ -29,6 +29,19 @@ class DisplayTagIdGUI(Process):
         self.main_queue = main_queue
         self.logger = logging.getLogger('display_tag_id_gui')
         self.shipment_id = generate_shipment_id()
+        self.scan_button = None
+        self.upload_button = None
+
+        #   Define the variables for storing the checkbox value
+        self.carton_barcode_checkbox_variable = BooleanVar(False)
+        self.tags_checkbox_variable = BooleanVar(False)
+        self.weight_checkbox_variable = BooleanVar(False)
+
+        #   Define the variables for storing the output values
+        self.barcode_output = None
+        self.weight_output = None
+        self.carton_type_output = None
+        self.rfid_output = None
 
     def scan(self):
         """
@@ -53,19 +66,40 @@ class DisplayTagIdGUI(Process):
             self.logger.log(logging.DEBUG, "The user pressed quit")
             self.root.destroy()
 
-    def clear_canvas(self):
-        """
-        This method is used to clear the canvas
-        """
-        try:
-            self.canvas.delete("text_to_be_shown")
-            self.root.update()
-        except Exception as err:
-            self.logger.log(
-                logging.ERROR, f"The canvas could not be cleared. {err}")
+    # def clear_canvas(self):
+    #     """
+    #     This method is used to clear the canvas
+    #     """
+    #     try:
+    #         self.canvas.delete("text_to_be_shown")
+    #         self.root.update()
+    #     except Exception as err:
+    #         self.logger.log(
+    #             logging.ERROR, f"The canvas could not be cleared. {err}")
 
-    def generate_new_shipment_id():
+    def generate_new_shipment_id(self):
+        """This method generates a new shipment id"""
         self.shipment_id = generate_shipment_id()
+
+    def check_if_upload_button_should_be_activated(self):
+        """This method checks to see if the requisite data is present to activate the upload button"""
+        carton_barcode_checkbox_variable_value = self.carton_barcode_checkbox_variable.get()
+        weight_checkbox_variable_value = self.weight_checkbox_variable.get()
+        tags_checkbox_variable_value = self.tags_checkbox_variable.get()
+
+        if carton_barcode_checkbox_variable_value is True and weight_checkbox_variable_value is True and tags_checkbox_variable_value is True:
+            self.upload_button['state'] = NORMAL
+
+    def reset_data_on_successful_upload(self):
+        """This method will reset all data from the UI after an upload is successful"""
+        self.carton_barcode_checkbox_variable.set(False)
+        self.tags_checkbox_variable.set(False)
+        self.weight_checkbox_variable.set(False)
+
+        self.barcode_output['text'] = "No result"
+        self.weight_output['text'] = "No result"
+        self.rfid_output['text'] = "No result"
+        self.carton_type_output['text'] = "No result"
 
     def run_loop(self):
         """
@@ -82,6 +116,11 @@ class DisplayTagIdGUI(Process):
         # Do this because queue.get() is a blocking call
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
+            if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
+
+                messagebox.showinfo("Upload Successful", "Your data was uploaded successfully")
+            if input_value == DisplayEnums.UPLOAD_FAIL.value:
+                messagebox.showerror("Upload Error", "There was an error while uploading the carton details")
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
@@ -96,6 +135,7 @@ class DisplayTagIdGUI(Process):
                     self.carton_type_output['text'] = input_value['data']['carton_type']
                 else:
                     raise Exception('This type is not understood')
+
         self.root.after(300, self.run_loop)
 
     def draw_ui(self):
@@ -104,17 +144,16 @@ class DisplayTagIdGUI(Process):
         shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
         shipment_id_label.grid(row = 0, column = 0, columnspan=3)
 
+        #   Create the frame on the left
         left_frame = Frame(self.root, width=200, height=400)
         left_frame.grid(row=1, column=0, padx=50)
-        right_frame = Frame(self.root, width=650, height=400)
-        right_frame.grid(row=1, column=1)
-        
+
         #   Create the variables for the checkboxes
         self.carton_barcode_checkbox_variable = BooleanVar(value=False)
         self.tags_checkbox_variable = BooleanVar(value=False)
         self.weight_checkbox_variable = BooleanVar(value=False)
 
-        #   Create the checkboxes for the left grid
+        #   Create the checkboxes for the left frame
         carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
                                         variable=self.carton_barcode_checkbox_variable,
                                         onvalue=1,
@@ -137,6 +176,11 @@ class DisplayTagIdGUI(Process):
         tags_checkbox.grid(row=1, column=0, sticky=(E, W))
         weight_checkbox.grid(row=2, column=0, sticky=(E, W))
 
+        #   Create the frame on the right
+        right_frame = Frame(self.root, width=650, height=400)
+        right_frame.grid(row=1, column=1)
+
+        #   Create the frame where the output data will be shown
         output_data_frame = Frame(right_frame, width=650, height=350)
         output_data_frame.grid(row=0, column=0)
         
@@ -159,11 +203,12 @@ class DisplayTagIdGUI(Process):
         carton_type_label.grid(row=3, column=0, padx=25)
         self.carton_type_output = Label(output_data_frame, text="No result")
         self.carton_type_output.grid(row=3, column=1)
-        
-        scan_button = Button(right_frame, text="Scan", command=self.scan)
-        upload_button = Button(right_frame, text="Upload", command=self.upload)
-        scan_button.grid(row=4, column=0, sticky=(N, S, E, W))
-        upload_button.grid(row=5, column=0, sticky=(N, S, E, W))
+
+        #   Create the buttons for scanning & uploading the data
+        self.scan_button = Button(right_frame, text="Scan", command=self.scan)
+        self.upload_button = Button(right_frame, text="Upload", command=self.upload, state=DISABLED)
+        self.scan_button.grid(row=4, column=0, sticky=(N, S, E, W))
+        self.upload_button.grid(row=5, column=0, sticky=(N, S, E, W))
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_window)
         self.root.after(900, self.run_loop)
