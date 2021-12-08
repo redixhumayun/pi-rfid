@@ -90,7 +90,7 @@ class DisplayTagIdGUI(Process):
         if carton_barcode_checkbox_variable_value is True and weight_checkbox_variable_value is True and tags_checkbox_variable_value is True:
             self.upload_button['state'] = NORMAL
 
-    def reset_data_on_successful_upload(self):
+    def reset_data(self):
         """This method will reset all data from the UI after an upload is successful"""
         self.carton_barcode_checkbox_variable.set(False)
         self.tags_checkbox_variable.set(False)
@@ -117,10 +117,11 @@ class DisplayTagIdGUI(Process):
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
             if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
-
                 messagebox.showinfo("Upload Successful", "Your data was uploaded successfully")
+                self.reset_data()
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 messagebox.showerror("Upload Error", "There was an error while uploading the carton details")
+                self.reset_data()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
