@@ -1,8 +1,9 @@
 import sys
+import logging
 from multiprocessing import Process, Queue
 
-from barcode_scanner_enums import BarcodeScannerEnums
-from scanner import Scanner
+from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
+from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
 
 
@@ -16,7 +17,11 @@ class BarcodeScannerReader(Process):
         Process.__init__(self)
         self.queue = queue
         self.main_queue = main_queue
-        self.scanner = Scanner('/dev/hidraw0')
+        self.logger = logging.getLogger('barcode_scanner_reader')
+        try:
+            self.scanner = Scanner('/dev/hidraw2')
+        except PermissionError as err:
+            self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
 
     def run(self):
         should_exit_loop = False
@@ -29,6 +34,7 @@ class BarcodeScannerReader(Process):
             #   Assuming self.scanner.read() is a blocking call that will only send
             #   a value back to the main process after reading something
             value = self.scanner.read()
+            print("value: ", value)
             carton_code = self.decode_barcode_into_carton_code(value)
             self.send_value_to_main_process(carton_code)
 

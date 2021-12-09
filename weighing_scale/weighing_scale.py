@@ -25,7 +25,7 @@ class WeighingScale(Process):
         while should_exit_loop is False:
             if self.queue.qsize() > 0:
                 input_queue_string = self.queue.get()
-                if input_queue_string == WeighingScaleEnums.START_WEIGHING:
+                if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:
                     is_weight_read = False
                     while is_weight_read is False:
                         weight_in_bytes = self.serial_device_1.readline()
@@ -39,7 +39,7 @@ class WeighingScale(Process):
                         if self.weight > 0:
                             is_weight_read = True
                             self.main_queue.put({
-                                'type': WeighingScaleEnums.WEIGHT_VALUE_READ,
+                                'type': WeighingScaleEnums.WEIGHT_VALUE_READ.value,
                                 'data': {
                                     'weight': self.weight
                                 }

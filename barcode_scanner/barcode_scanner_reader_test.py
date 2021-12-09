@@ -1,8 +1,8 @@
 import sys
 from multiprocessing import Process, Queue
 
-from barcode_scanner_enums import BarcodeScannerEnums
-from scanner import Scanner
+from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
+from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
 
 
