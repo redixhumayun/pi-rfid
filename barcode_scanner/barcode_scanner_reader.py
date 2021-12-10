@@ -47,6 +47,6 @@ class BarcodeScannerReader(Process):
         })
 
     def decode_barcode_into_carton_code(self, barcode):
-        api_request = MakeApiRequest('/fabship/rfid/carton')
-        carton_code = api_request.get({'barcode': barcode})
+        api_request = MakeApiRequest(f"/fabship/rfid/carton/barcode/{barcode}")
+        carton_code = api_request.get()
         return carton_code

@@ -43,6 +43,14 @@ class DisplayTagIdGUI(Process):
         self.carton_type_output = None
         self.rfid_output = None
 
+    def show_error(self, title: str, body: str) -> None:
+        """This method will show an error message"""
+        messagebox.showerror(f"{title}", f"{body}")
+
+    def show_message(self, title: str, body: str) -> None:
+        """This method will show an info message"""
+        messagebox.showinfo(f"{title}", f"{body}")
+
     def scan(self):
         """
         This method is called when the scan button is pressed
@@ -55,6 +63,10 @@ class DisplayTagIdGUI(Process):
         This method is called when the upload button is pressed
         """
         self.logger.log(logging.DEBUG, "The user pressed upload")
+        #   Check if the relevant data is present before passing message to the main queue
+        if self.carton_barcode_checkbox_variable is False or self.weight_checkbox_variable is False or self.tags_checkbox_variable is False:
+            self.logger.log(logging.DEBUG, "The user tried to upload without all the relevant data")
+            self.show_error(title="Upload Error", body="All the data is not entered. View checkboxes on the side for more information.")
         self.main_queue.put(DisplayEnums.UPLOAD.value)
 
     def close_window(self):
@@ -65,17 +77,6 @@ class DisplayTagIdGUI(Process):
             self.main_queue.put(DisplayEnums.QUIT.value)
             self.logger.log(logging.DEBUG, "The user pressed quit")
             self.root.destroy()
-
-    # def clear_canvas(self):
-    #     """
-    #     This method is used to clear the canvas
-    #     """
-    #     try:
-    #         self.canvas.delete("text_to_be_shown")
-    #         self.root.update()
-    #     except Exception as err:
-    #         self.logger.log(
-    #             logging.ERROR, f"The canvas could not be cleared. {err}")
 
     def generate_new_shipment_id(self):
         """This method generates a new shipment id"""
@@ -117,11 +118,10 @@ class DisplayTagIdGUI(Process):
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
             if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
-                messagebox.showinfo("Upload Successful", "Your data was uploaded successfully")
+                self.show_message("Upload Successful", "Your data was uploaded successfully")
                 self.reset_data()
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
-                messagebox.showerror("Upload Error", "There was an error while uploading the carton details")
-                self.reset_data()
+                self.show_error("Upload Error", "There was an error while uploading the carton details")
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']

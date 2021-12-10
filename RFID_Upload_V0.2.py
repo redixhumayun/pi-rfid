@@ -131,7 +131,6 @@ if __name__ == "__main__":
     # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
     # later works, but it does. If you add this process to a list and start it later in a for loop
     # it will cause the same line to log thousands of times
-    # processes.append(logging_listener)
     logging_listener.start()
 
     # Start the worker process that will implement all required handlers
