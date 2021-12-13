@@ -102,6 +102,8 @@ class DisplayTagIdGUI(Process):
         self.rfid_output['text'] = "No result"
         self.carton_type_output['text'] = "No result"
 
+        self.upload_button['state'] = DISABLED
+
     def run_loop(self):
         """
         This method is used to run a loop every 900ms and is called
@@ -137,6 +139,8 @@ class DisplayTagIdGUI(Process):
                 else:
                     raise Exception('This type is not understood')
 
+
+        self.check_if_upload_button_should_be_activated()
         self.root.after(300, self.run_loop)
 
     def draw_ui(self):
