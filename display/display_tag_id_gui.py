@@ -67,7 +67,13 @@ class DisplayTagIdGUI(Process):
         if self.carton_barcode_checkbox_variable is False or self.weight_checkbox_variable is False or self.tags_checkbox_variable is False:
             self.logger.log(logging.DEBUG, "The user tried to upload without all the relevant data")
             self.show_error(title="Upload Error", body="All the data is not entered. View checkboxes on the side for more information.")
-        self.main_queue.put(DisplayEnums.UPLOAD.value)
+        # self.main_queue.put(DisplayEnums.UPLOAD.value)
+        self.main_queue.put({
+            'type': DisplayEnums.UPLOAD.value,
+            'data': {
+                'shipment_id': self.shipment_id
+            }
+        })
 
     def close_window(self):
         """
@@ -81,6 +87,7 @@ class DisplayTagIdGUI(Process):
     def generate_new_shipment_id(self):
         """This method generates a new shipment id"""
         self.shipment_id = generate_shipment_id()
+        self.set_new_shipment_id()
 
     def check_if_upload_button_should_be_activated(self):
         """This method checks to see if the requisite data is present to activate the upload button"""
@@ -103,6 +110,10 @@ class DisplayTagIdGUI(Process):
         self.carton_type_output['text'] = "No result"
 
         self.upload_button['state'] = DISABLED
+
+    def set_new_shipment_id(self):
+        """This method will set the new shipment id"""
+        self.shipment_id_label['text'] = f"Shipment ID: {self.shipment_id}"
 
     def run_loop(self):
         """
@@ -146,8 +157,11 @@ class DisplayTagIdGUI(Process):
     def draw_ui(self):
         self.root.maxsize(900, 600)
 
-        shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
-        shipment_id_label.grid(row = 0, column = 0, columnspan=3)
+        self.shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
+        self.shipment_id_label.grid(row = 0, column = 0, pady=50)
+
+        new_shipment_id_button = Button(self.root, text="Generate New Shipment ID", command=self.generate_new_shipment_id)
+        new_shipment_id_button.grid(row = 0, column = 1, pady=50)
 
         #   Create the frame on the left
         left_frame = Frame(self.root, width=200, height=400)

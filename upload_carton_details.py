@@ -4,9 +4,9 @@ from os import path
 from make_api_request import MakeApiRequest
 
 logger = logging.getLogger('upload_carton_details')
-api_request = MakeApiRequest('fabship/product/rfid')
+api_request = MakeApiRequest('/fabship/product/rfid')
 
-def upload_carton_details(list_of_epc_tags, carton_weight, carton_barcode, carton_pack_type) -> bool:
+def upload_carton_details(list_of_epc_tags, carton_weight, carton_code, carton_barcode, carton_pack_type, shipment_id) -> bool:
     logger.log(logging.DEBUG, f"Received the following tags to upload: {list_of_epc_tags}")
     # Read the location from the relevant file
     dirname = path.dirname(__file__)
@@ -24,7 +24,16 @@ def upload_carton_details(list_of_epc_tags, carton_weight, carton_barcode, carto
     try:
         logger.log(logging.DEBUG, "Making a POST request")
         response = api_request.post(
-            {'location': location, 'epc': list_of_epc_tags})
+            {
+                'location': 'IDU1', #   only while testing against prod 
+                'epcs': list_of_epc_tags,
+                'shipmentId': str(shipment_id),
+                'cartonCode': carton_code,
+                'cartonBarcode': carton_barcode,
+                'cartonWeight': carton_weight,
+                'packType': carton_pack_type
+            }
+        )
         logger.log(logging.DEBUG,
                     f"Received the following response: {response}")
         return True
@@ -32,3 +41,17 @@ def upload_carton_details(list_of_epc_tags, carton_weight, carton_barcode, carto
         logger.log(logging.ERROR,
                     f"Error raised while uploading tags: {err}")
         return False
+
+
+
+{
+    "location": "IDU1",
+    "shipmentId": "123",
+    "cartonCode": "SC5b",
+    "cartonBarcode": "HM0001",
+    "cartonWeight": 9.82,
+    "packType": "assorted",
+    "epcs": [
+        "303ACA4782A055999C82D7DB, 303ACA4782A055999C82DA71"
+    ]
+}

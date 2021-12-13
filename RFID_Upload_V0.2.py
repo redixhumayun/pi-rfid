@@ -231,8 +231,10 @@ if __name__ == "__main__":
 
     list_of_tags_to_upload = []
     carton_weight = 0
+    carton_code = ''
     carton_barcode = ''
     carton_pack_type = None
+    shipment_id = ''
 
     while True:
         main_queue_value = main_queue.get(block=True)
@@ -241,15 +243,6 @@ if __name__ == "__main__":
             list_of_tags_to_upload.clear()
             read_tags_queue.put(TagReaderEnums.START_READING_TAGS.value)
             weighing_queue.put(WeighingScaleEnums.START_WEIGHING.value)
-
-        elif main_queue_value == DisplayEnums.UPLOAD.value:
-            read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
-            result = upload_carton_details(
-                list_of_tags_to_upload, carton_weight, carton_barcode, carton_pack_type)
-            if result is True:
-                display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
-            else:
-                display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
             for queue in queues:
@@ -260,18 +253,20 @@ if __name__ == "__main__":
             if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS.value:
                 data = main_queue_value['data']
                 tags_list = data['tags']
-                carton_type = data['carton_type']
+                carton_pack_type = data['carton_type']
                 split_string = tags_list.split()
                 number_of_tags = split_string[0]
-                list_of_tags = split_string[1:]
                 display_tag_id_gui_queue.put({
                     'type': DisplayEnums.SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE.value,
                     'data': {
                         'tags': number_of_tags,
-                        'carton_type': carton_type
+                        'carton_type': carton_pack_type
                     }
                 })
-                # Make the list of tags unique
+
+                # Save list of tags to the appropriate variable and make it unique
+                list_of_tags = split_string[1:]
+                list_of_tags_to_upload.extend(list_of_tags)
                 list_of_tags_to_upload = list(set(list_of_tags_to_upload))
                 
             if main_queue_value['type'] == WeighingScaleEnums.WEIGHT_VALUE_READ.value:
@@ -284,13 +279,36 @@ if __name__ == "__main__":
                 })
 
             if main_queue_value['type'] == BarcodeScannerEnums.CARTON_BARCODE_SCAN_VALUE.value:
-                carton_barcode = main_queue_value['data']['barcode']
+                carton_barcode = main_queue_value['data']['carton_barcode']
+                carton_code = main_queue_value['data']['carton_code']
                 display_tag_id_gui_queue.put({
                     'type': DisplayEnums.SHOW_SCANNED_BARCODE.value,
                     'data': {
-                        'barcode': carton_barcode
+                        'barcode': carton_code
                     }
                 })
+
+            if main_queue_value['type'] == DisplayEnums.UPLOAD.value:
+                shipment_id = main_queue_value['data']['shipment_id']
+                read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                carton_details_api_upload_call_result = upload_carton_details(
+                    list_of_tags_to_upload, 
+                    carton_weight,
+                    carton_code,
+                    carton_barcode, 
+                    carton_pack_type,
+                    shipment_id
+                )
+                if carton_details_api_upload_call_result is True:
+                    display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
+                    list_of_tags_to_upload = []
+                    carton_weight = 0
+                    carton_code = ''
+                    carton_barcode = ''
+                    carton_pack_type = None
+                    shipment_id = ''
+                else:
+                    display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     for process in processes:
         logging_listener.join()

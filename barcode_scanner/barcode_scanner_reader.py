@@ -33,16 +33,16 @@ class BarcodeScannerReader(Process):
 
             #   Assuming self.scanner.read() is a blocking call that will only send
             #   a value back to the main process after reading something
-            value = self.scanner.read()
-            print("value: ", value)
-            carton_code = self.decode_barcode_into_carton_code(value)
-            self.send_value_to_main_process(carton_code)
+            barcode = self.scanner.read()
+            carton_code = self.decode_barcode_into_carton_code(barcode)
+            self.send_value_to_main_process(carton_code, barcode)
 
-    def send_value_to_main_process(self, barcode):
+    def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
             'type': BarcodeScannerEnums.CARTON_BARCODE_SCAN_VALUE.value,
             'data': {
-                'barcode': barcode
+                'carton_code': carton_code,
+                'carton_barcode': barcode
             }
         })
 
