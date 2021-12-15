@@ -26,6 +26,8 @@ class WeighingScale(Process):
             if self.queue.qsize() > 0:
                 input_queue_string = self.queue.get()
                 if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:
+                    #   Reset the input buffer so stale values are not read
+                    self.serial_device_1.reset_input_buffer()
                     is_weight_read = False
                     while is_weight_read is False:
                         weight_in_bytes = self.serial_device_1.readline()
