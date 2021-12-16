@@ -12,7 +12,7 @@ class MakeApiRequest():
   load_dotenv()
 
   # This will be a static variable for this class
-  headers = {'version': '5.0'}
+  headers = {'version': '6.0'}
 
   def __init__(self, url: str):
     # Load all the env variables
@@ -55,6 +55,8 @@ class MakeApiRequest():
       return self.get(payload)
     elif method == 'POST':
       return self.post(payload)
+    elif method == 'GET_WITH_BODY':
+      return self.get_request_with_body(payload)
 
   def authenticate_and_retry_request(self, method, payload):
     """Will re-fetch the token and then retry the request"""
@@ -102,4 +104,24 @@ class MakeApiRequest():
         raise err
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
+      raise err
+
+  def get_request_with_body(self, data: dict={}):
+    """Makes a GET method API request with the body attached"""
+    try:
+      self.logger.log(logging.DEBUG, f"Making a GET request with the following data: {data} attached to the body to the following endpoint: {self.url}")
+      response = requests.request(method='get', url=self.url, data=data, headers = MakeApiRequest.headers)
+      response.raise_for_status()
+      return response.json()
+    except requests.exceptions.HTTPError as err:
+      if err.response.status_code == 401:
+        self.logger.log(logging.ERROR, "There was a 401 authentication error while making the GET request with a body. Application will fetch a new token and retry the request")
+        return self.authenticate_and_retry_request('GET_WITH_BODY', data)
+      else:
+        error_response = json.loads(err.response.text)
+        error_message = error_response['message']
+        self.logger.log(logging.ERROR, f"There was an error while making the GET request with a body: {error_message}")
+        raise err
+    except requests.exceptions.MissingSchema as err:
+      self.logger.log(logging.ERROR, f"There was an error while making the GET request with a body: {err}")
       raise err
