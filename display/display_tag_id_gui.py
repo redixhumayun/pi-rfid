@@ -89,6 +89,14 @@ class DisplayTagIdGUI(Process):
         self.shipment_id = generate_shipment_id()
         self.set_new_shipment_id()
 
+    def check_if_scan_button_should_be_activated(self):
+        """This method will check if the scan button should be activated based on whether
+        there is a carton barcode value provided"""
+        carton_barcode_checkbox_variable_value = self.carton_barcode_checkbox_variable.get()
+        
+        if carton_barcode_checkbox_variable_value is True:
+            self.scan_button['state'] = NORMAL
+
     def check_if_upload_button_should_be_activated(self):
         """This method checks to see if the requisite data is present to activate the upload button"""
         carton_barcode_checkbox_variable_value = self.carton_barcode_checkbox_variable.get()
@@ -109,6 +117,7 @@ class DisplayTagIdGUI(Process):
         self.rfid_output['text'] = "No result"
         self.carton_type_output['text'] = "No result"
 
+        self.scan_button['state'] = DISABLED
         self.upload_button['state'] = DISABLED
 
     def set_new_shipment_id(self):
@@ -151,20 +160,24 @@ class DisplayTagIdGUI(Process):
                     raise Exception('This type is not understood')
 
 
+        self.check_if_scan_button_should_be_activated()
         self.check_if_upload_button_should_be_activated()
         self.root.after(300, self.run_loop)
 
     def draw_ui(self):
-        self.root.maxsize(900, 600)
+        # self.root.maxsize(1500, 900)
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
 
         self.shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
         self.shipment_id_label.grid(row = 0, column = 0, pady=50)
+        self.shipment_id_label.config(font=("TkDefaultFont", 15))
 
         new_shipment_id_button = Button(self.root, text="Generate New Shipment ID", command=self.generate_new_shipment_id)
         new_shipment_id_button.grid(row = 0, column = 1, pady=50)
 
         #   Create the frame on the left
-        left_frame = Frame(self.root, width=200, height=400)
+        left_frame = Frame(self.root, width=400, height=800)
         left_frame.grid(row=1, column=0, padx=50)
 
         #   Create the variables for the checkboxes
@@ -192,42 +205,60 @@ class DisplayTagIdGUI(Process):
                                         state=DISABLED)
         
         carton_barcode_checkbox.grid(row=0, column=0, sticky=(E, W))
+        carton_barcode_checkbox.config(font=("TkDefaultFont", 15))
+        
         tags_checkbox.grid(row=1, column=0, sticky=(E, W))
+        tags_checkbox.config(font=("TkDefaultFont", 15))
+        
         weight_checkbox.grid(row=2, column=0, sticky=(E, W))
+        weight_checkbox.config(font=("TkDefaultFont", 15))
 
         #   Create the frame on the right
-        right_frame = Frame(self.root, width=650, height=400)
+        right_frame = Frame(self.root, width=650, height=800)
         right_frame.grid(row=1, column=1)
 
         #   Create the frame where the output data will be shown
         output_data_frame = Frame(right_frame, width=650, height=350)
         output_data_frame.grid(row=0, column=0)
+        output_data_frame.columnconfigure(0, weight=1)
+        output_data_frame.rowconfigure(0, weight=1)
         
         barcode_label = Label(output_data_frame, text="Barcode")
         barcode_label.grid(row=0, column=0, padx=25)
+        barcode_label.config(font=("TkDefaultFont", 15))
         self.barcode_output = Label(output_data_frame, text="No result")
         self.barcode_output.grid(row=0, column=1)
+        self.barcode_output.config(font=("TkDefaultFont", 15))
 
         weight_label = Label(output_data_frame, text="Weight")
         weight_label.grid(row=1, column=0, padx=25)
+        weight_label.config(font=("TkDefaultFont", 15))
         self.weight_output = Label(output_data_frame, text="No result")
         self.weight_output.grid(row=1, column=1)
+        self.weight_output.config(font=("TkDefaultFont", 15))
 
         rfid_label = Label(output_data_frame, text="RFID Tags")
         rfid_label.grid(row=2, column=0, padx=25)
+        rfid_label.config(font=("TkDefaultFont", 15))
         self.rfid_output = Label(output_data_frame, text="No result")
         self.rfid_output.grid(row=2, column=1)
+        self.rfid_output.config(font=("TkDefaultFont", 15))
 
         carton_type_label = Label(output_data_frame, text="Carton Type")
         carton_type_label.grid(row=3, column=0, padx=25)
+        carton_type_label.config(font=("TkDefaultFont", 15))
         self.carton_type_output = Label(output_data_frame, text="No result")
         self.carton_type_output.grid(row=3, column=1)
+        self.carton_type_output.config(font=("TkDefaultFont", 15))
 
         #   Create the buttons for scanning & uploading the data
-        self.scan_button = Button(right_frame, text="Scan", command=self.scan)
-        self.upload_button = Button(right_frame, text="Upload", command=self.upload, state=DISABLED)
+        self.scan_button = Button(right_frame, text="Scan", command=self.scan, state=DISABLED)
         self.scan_button.grid(row=4, column=0, sticky=(N, S, E, W))
+        self.scan_button.config(font=("TkDefaultFont", 15))
+
+        self.upload_button = Button(right_frame, text="Upload", command=self.upload, state=DISABLED)
         self.upload_button.grid(row=5, column=0, sticky=(N, S, E, W))
+        self.upload_button.config(font=("TkDefaultFont", 15))
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_window)
         self.root.after(900, self.run_loop)

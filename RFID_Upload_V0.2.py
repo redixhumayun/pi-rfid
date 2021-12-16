@@ -287,6 +287,12 @@ if __name__ == "__main__":
                         'barcode': carton_code
                     }
                 })
+                read_tags_queue.put({
+                    'type': TagReaderEnums.RECEIVED_CARTON_BARCODE_VALUE.value,
+                    'data': {
+                        'carton_code': carton_code
+                    }
+                })
 
             if main_queue_value['type'] == DisplayEnums.UPLOAD.value:
                 shipment_id = main_queue_value['data']['shipment_id']

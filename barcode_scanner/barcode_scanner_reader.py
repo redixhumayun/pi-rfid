@@ -19,7 +19,7 @@ class BarcodeScannerReader(Process):
         self.main_queue = main_queue
         self.logger = logging.getLogger('barcode_scanner_reader')
         try:
-            self.scanner = Scanner('/dev/hidraw2')
+            self.scanner = Scanner('/dev/usb-barcode-scanner')
         except PermissionError as err:
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
 

@@ -1,8 +1,13 @@
 from carton.carton_type import CartonType
 from carton.carton_perforation import CartonPerforation
 
+def get_carton_perforation(carton_code):
+    if carton_code[-1] == 'P':
+        return CartonPerforation.PERFORATED.value
+    return CartonPerforation.NONPERFORATED.value
 
 def decide_carton_type(product_details_in_carton, carton_type):
+    print(carton_type)
     """
     This method will decide what type of carton it is based on the sizes
     of products found inside the carton
@@ -12,6 +17,7 @@ def decide_carton_type(product_details_in_carton, carton_type):
     2. Non-perforated carton
       a. Is only a ratio pack
     """
+
     if carton_type == CartonPerforation.PERFORATED.value:
         # Carton is either solid or mixed
         hash_map_of_unique_sizes = {}
@@ -30,3 +36,5 @@ def decide_carton_type(product_details_in_carton, carton_type):
     if carton_type == CartonPerforation.NONPERFORATED.value:
         # Carton type is ratio
         return CartonType.ASSORTED.value
+
+    raise Exception('This carton type is not identifiable')

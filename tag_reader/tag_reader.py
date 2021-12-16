@@ -4,8 +4,7 @@ import time
 import serial
 import sys
 from make_api_request import MakeApiRequest
-from carton.decide_carton_type import decide_carton_type
-from carton.carton_perforation import CartonPerforation
+from carton.decide_carton_type import decide_carton_type, get_carton_perforation
 from tag_reader.Entities.rfid_tag import RFIDTagEntity
 from tag_reader.tag_reader_enums import TagReaderEnums
 
@@ -45,6 +44,7 @@ class TagReader(Process):
         self.string_of_tags = ""
         self.start_time = 0
         self.logger = logging.getLogger('tag_reader')
+        self.carton_barcode = None
         self.carton_type = None
 
     def send_tag_details_to_main_process(self, carton_type):
@@ -73,8 +73,12 @@ class TagReader(Process):
         api_request = MakeApiRequest('/fabship/product/rfid')
         decoded_product_details = api_request.get_request_with_body(
             {'epc': self.tag_hex_list})
-        carton_type = decide_carton_type(
-            decoded_product_details, CartonPerforation.PERFORATED.value)
+        carton_perforation = get_carton_perforation(self.carton_barcode)
+        try:
+            carton_type = decide_carton_type(
+                decoded_product_details, carton_perforation)
+        except Exception as e:
+            self.logger.log(logging.ERROR, f"There was an error while deciding the carton type")
         return carton_type
 
     def read_tag_data(self, tag_bytes_list):
@@ -148,7 +152,13 @@ class TagReader(Process):
                     self.tag_hex_list.clear()
                     self.should_send_back_tag_values = False
                     self.start_time = time.time()
+                    self.carton_barcode = None
                     self.carton_type = None
+                elif isinstance(input_queue_string, dict):
+                    if input_queue_string['type'] == TagReaderEnums.RECEIVED_CARTON_BARCODE_VALUE.value:
+                        self.logger.log(
+                            logging.DEBUG, "Received the carton barcode value")
+                        self.carton_barcode = input_queue_string['data']['carton_code']
                 elif input_queue_string is None:
                     self.logger.log(
                         logging.DEBUG, "Exiting the tag_reader process")
