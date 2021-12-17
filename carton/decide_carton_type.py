@@ -7,7 +7,6 @@ def get_carton_perforation(carton_code):
     return CartonPerforation.NONPERFORATED.value
 
 def decide_carton_type(product_details_in_carton, carton_type):
-    print(carton_type)
     """
     This method will decide what type of carton it is based on the sizes
     of products found inside the carton
