@@ -36,7 +36,9 @@ class Scanner:
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
             while True:
+                print('in loop scan')
                 for char_code in [element for element in fp.read(8) if element > 0]:
+                    print('scan log --', char_code)
                     if char_code == self.CR_CHAR:
                         return
                     self.codes.append(char_code)
