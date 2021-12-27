@@ -42,12 +42,14 @@ class Scanner:
             os.set_blocking(fp.fileno(), False)
             while True:
                 print('read loop')
-                for char_code in [element for element in fp.read(8) if element > 0]:
+                content = fp.read(8)
+                if content is None:
+                    return
+                for char_code in [element for element in content if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
                         return
                     self.codes.append(char_code)
-            print('scanner loop exit')
 
     def parse_char_codes(self) -> str:
         string_to_return = ""
