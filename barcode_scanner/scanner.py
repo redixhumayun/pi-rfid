@@ -37,7 +37,7 @@ class Scanner:
 
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
-            timeout = 3
+            timeout = 300
             timeout_start = time.time()
             while True:
                 if time.time() > timeout_start + timeout:
