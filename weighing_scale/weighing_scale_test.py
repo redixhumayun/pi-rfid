@@ -18,6 +18,7 @@ class WeighingScaleTest(Process):
         while should_exit_loop is False:
             if self.queue.qsize() > 0:
                 input_queue_string = self.queue.get()
+                print('weighing scale test input', input_queue_string)
                 if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:
                     is_weight_read = False
                     while is_weight_read is False:
