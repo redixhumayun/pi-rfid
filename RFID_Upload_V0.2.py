@@ -210,7 +210,7 @@ if __name__ == "__main__":
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
-        read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
+        read_tags_process = TagReader(read_tags_queue, main_queue)
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
