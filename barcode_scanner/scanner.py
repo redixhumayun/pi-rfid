@@ -41,7 +41,7 @@ class Scanner:
             print('begin')
             os.set_blocking(fp.fileno(), False)
             while True:
-                print('read loop')
+                print('read loop', self.codes)
                 content = fp.read(8)
                 if content is None:
                     if len(self.codes) == 0:
