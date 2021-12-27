@@ -42,7 +42,7 @@ class Scanner:
             os.set_blocking(fp.fileno(), False)
             while True:
                 print('read loop')
-                content = fp.read(8)
+                content = fp.read()
                 if content is None:
                     return
                 for char_code in [element for element in content if element > 0]:
