@@ -48,11 +48,12 @@ class BarcodeScannerReaderTest(Process):
             #   a value back to the main process after reading something
             # value = 'HM0001'
             print('before')
-            barcode = self.scanner.read()
+            # barcode = self.scanner.read()
+            barcode = 'HM0019'
             print('after-', barcode, '-got')
             if barcode:
-                carton_code = self.decode_barcode_into_carton_code('HM0019')
-                self.send_value_to_main_process(carton_code, 'HM0019')
+                carton_code = self.decode_barcode_into_carton_code(barcode)
+                self.send_value_to_main_process(carton_code, barcode)
 
     def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
