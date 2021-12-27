@@ -51,17 +51,19 @@ class BarcodeScannerReaderTest(Process):
             barcode = self.scanner.read()
             print('after')
             carton_code = self.decode_barcode_into_carton_code(barcode)
-            self.send_value_to_main_process(carton_code)
+            self.send_value_to_main_process(carton_code, barcode)
 
-    def send_value_to_main_process(self, barcode):
+    def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
             'type': BarcodeScannerEnums.CARTON_BARCODE_SCAN_VALUE.value,
             'data': {
-                'barcode': barcode
+                'carton_code': carton_code,
+                'carton_barcode': barcode
             }
         })
 
     def decode_barcode_into_carton_code(self, barcode):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
         carton_code = api_request.get()
+        print('get api response', carton_code)
         return carton_code
