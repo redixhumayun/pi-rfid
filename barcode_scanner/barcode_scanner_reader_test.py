@@ -49,7 +49,7 @@ class BarcodeScannerReaderTest(Process):
             # value = 'HM0001'
             print('before')
             barcode = self.scanner.read()
-            print('after')
+            print('after', barcode)
             carton_code = self.decode_barcode_into_carton_code(barcode)
             self.send_value_to_main_process(carton_code, barcode)
 
