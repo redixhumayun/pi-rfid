@@ -27,9 +27,10 @@ class BarcodeScannerReaderTest(Process):
         print('running test barcode')
         should_exit_loop = False
         while should_exit_loop is False:
-            print('in while loop - ',should_exit_loop )
+            print('in while loop - ', self.queue)
             if self.queue.qsize() > 0:
                 input_queue_value = self.queue.get()
+                print('queue value =', input_queue_value)
                 if input_queue_value is None:
                     self.logger.log(
                         logging.DEBUG, "Exiting the scanning process")
