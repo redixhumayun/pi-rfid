@@ -3,8 +3,7 @@
 # Inspired by https://www.piddlerintheroot.com/barcode-scanner/
 # https://www.raspberrypi.org/forums/viewtopic.php?f=45&t=55100
 # from 'brechmos' - thank-you!
-
-import os
+import time
 
 
 class Scanner:
@@ -40,13 +39,6 @@ class Scanner:
         with open(self.file, 'rb') as fp:
             while True:
                 print('read scan looping')
-                fp.seek(0, os.SEEK_END)
-                if fp.tell():
-                    print('file not empty')
-                    fp.seek(0)
-                else:
-                    print('return - file empty')
-                    return
                 for char_code in [element for element in fp.read(8) if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
@@ -66,7 +58,10 @@ class Scanner:
         return string_to_return
 
     def read(self):
-        self.read_char_codes()
+        timeout = 3
+        timeout_start = time.time()
+        while time.time() < timeout_start + timeout:
+            self.read_char_codes()
         print('main scan', self.codes)
         parsed_string:str = self.parse_char_codes()
         print('main scan parse', parsed_string)
