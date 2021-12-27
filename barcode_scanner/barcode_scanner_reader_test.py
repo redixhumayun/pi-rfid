@@ -24,8 +24,10 @@ class BarcodeScannerReaderTest(Process):
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
 
     def run(self):
+        print('running test barcode')
         should_exit_loop = False
         while should_exit_loop is False:
+            print('in while loop - ',should_exit_loop )
             if self.queue.qsize() > 0:
                 input_queue_value = self.queue.get()
                 if input_queue_value is None:
