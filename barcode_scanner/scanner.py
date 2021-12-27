@@ -37,7 +37,11 @@ class Scanner:
 
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
+            timeout = 3
+            timeout_start = time.time()
             while True:
+                if time.time() > timeout_start + timeout:
+                    return
                 print('read scan looping')
                 for char_code in [element for element in fp.read(8) if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
@@ -58,10 +62,7 @@ class Scanner:
         return string_to_return
 
     def read(self):
-        timeout = 3
-        timeout_start = time.time()
-        while time.time() < timeout_start + timeout:
-            self.read_char_codes()
+        self.read_char_codes()
         print('main scan', self.codes)
         parsed_string:str = self.parse_char_codes()
         print('main scan parse', parsed_string)
