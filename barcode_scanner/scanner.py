@@ -47,6 +47,12 @@ class Scanner:
                     print('return')
                     return
                 print('read scan looping')
+                z = fp.read(8)
+                print('read', z)
+                a = [x for x in z if z >0]
+                print('list', a)
+                for each in a:
+                    print('hello',each)
                 for char_code in [element for element in fp.read(8) if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
