@@ -37,10 +37,14 @@ class Scanner:
 
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
-            timeout = 300
+            print('begin')
+            timeout = 30
             timeout_start = time.time()
+            check = timeout + timeout_start
             while True:
-                if time.time() > timeout_start + timeout:
+                print('here', time.time(), '>?', check)
+                if time.time() > check:
+                    print('return')
                     return
                 print('read scan looping')
                 for char_code in [element for element in fp.read(8) if element > 0]:
