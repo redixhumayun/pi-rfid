@@ -245,8 +245,12 @@ if __name__ == "__main__":
             weighing_queue.put(WeighingScaleEnums.START_WEIGHING.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
-            for queue in queues:
-                queue.put_nowait(None)
+            for p in processes:
+                print('killing process', p)
+                p.terminate()
+                p.join()
+            # for queue in queues:
+                # queue.put_nowait(None)
             break
 
         elif isinstance(main_queue_value, dict):
