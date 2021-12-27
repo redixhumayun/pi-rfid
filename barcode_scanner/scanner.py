@@ -4,6 +4,9 @@
 # https://www.raspberrypi.org/forums/viewtopic.php?f=45&t=55100
 # from 'brechmos' - thank-you!
 
+import os
+
+
 class Scanner:
     def __init__(self, file: str):
         self.file = file
@@ -37,6 +40,13 @@ class Scanner:
         with open(self.file, 'rb') as fp:
             while True:
                 print('read scan looping')
+                fp.seek(0, os.SEEK_END)
+                if fp.tell():
+                    print('file not empty')
+                    fp.seek(0)
+                else:
+                    print('return - file empty')
+                    return
                 for char_code in [element for element in fp.read(8) if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
