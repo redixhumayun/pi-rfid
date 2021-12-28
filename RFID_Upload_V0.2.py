@@ -320,3 +320,5 @@ if __name__ == "__main__":
     for process in processes:
         logging_listener.join()
         process.join()
+        print('we still stuck?')
+    print('we exit ?')
