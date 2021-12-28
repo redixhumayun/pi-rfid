@@ -14,6 +14,10 @@ class SelectLocationGUI(Process):
     Process.__init__(self)
     self.queue = queue
     self.main_queue = main_queue
+    self.root = tk.Tk()
+    self.canvas = tk.Canvas(self.root, bg="white",
+                            width=800,
+                            height=450)
     self.possible_locations = None
     self.buttons = {}
     self.logger = logging.getLogger('select_location_gui')
@@ -42,12 +46,10 @@ class SelectLocationGUI(Process):
     This method is required to be implemented by any class
     that sub-classes multiprocessing.Process
     """
+    print('running select location gui process')
     while self.possible_locations is None:
       self.possible_locations = self.queue.get()
-    self.root = tk.Tk()
-    self.canvas = tk.Canvas(self.root, bg="white",
-                            width=800,
-                            height=450)
+
     self.canvas.pack(side=tk.TOP)
     for location in self.possible_locations:
       key = f"button_{location}"

@@ -139,6 +139,7 @@ if __name__ == "__main__":
     # Start GPS process and allow user to select location only if
     # location has not already been set
     if should_check_location is True:
+        print('location check')
         # Create a boolean to check if the location has been picked by the user
         has_location_been_picked = False
 
