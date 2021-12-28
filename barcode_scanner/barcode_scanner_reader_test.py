@@ -50,9 +50,9 @@ class BarcodeScannerReaderTest(Process):
             # value = 'HM0001'
             else:
                 print('before')
-                # barcode = self.scanner.read()
-                barcode = 'HM0019'
-                time.sleep(10)
+                barcode = self.scanner.read()
+                # barcode = 'HM0019'
+                # time.sleep(10)
                 print('after-', barcode, '-got')
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
