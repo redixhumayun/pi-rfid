@@ -39,14 +39,12 @@ class Scanner:
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
             os.set_blocking(fp.fileno(), False)
-            timeout = 3
+            timeout = 3  # 3 seconds time out
             now = time.time()
             while True:
                 if time.time() > now + timeout:
-                    print('timeout scan')
                     return
                 content = fp.read(8) or []
-
                 for char_code in [element for element in content if element > 0]:
                     if char_code == self.CR_CHAR:
                         return
