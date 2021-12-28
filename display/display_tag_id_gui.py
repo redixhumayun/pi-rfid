@@ -137,6 +137,7 @@ class DisplayTagIdGUI(Process):
 
         # Check if the queue has any elements in it
         # Do this because queue.get() is a blocking call
+        print('running display tag loop')
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
             if input_value is None:
