@@ -40,9 +40,9 @@ class Scanner:
         with open(self.file, 'rb') as fp:
             print('begin')
             os.set_blocking(fp.fileno(), False)
+            timeout = 3
+            now = time.time()
             while True:
-                timeout = 3
-                now = time.time()
                 if time.time() > now + timeout:
                     print('timeout scan')
                     return
