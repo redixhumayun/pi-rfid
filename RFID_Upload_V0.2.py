@@ -41,7 +41,8 @@ def listener_configurer():
 # records that are sent by the remaining processes
 
 
-def listener_process(queue, configurer):
+def listener_process(queue:Queue, configurer):
+    print('listener queue', queue.qsize())
     configurer()
     while True:
         try:
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
     # later works, but it does. If you add this process to a list and start it later in a for loop
     # it will cause the same line to log thousands of times
-    # logging_listener.start()
+    logging_listener.start()
 
     # Start the worker process that will implement all required handlers
     worker_configurer(logging_queue)
@@ -318,11 +319,13 @@ if __name__ == "__main__":
                 else:
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
-    # for process in processes:
-    #     print('any process', process, '-', process.name)
-    #     process.terminate()
-    #     # logging_listener.join()
-    #     print('god help')
-    #     # process.join()
-    #     print('we still stuck?')
+    print('terminate log listener')
+    logging_listener.terminate()
+    for process in processes:
+        print('any process', process, '-', process.name)
+        # process.terminate()
+        # logging_listener.join()
+        # print('god help')
+        process.join()
+        print('we still stuck?')
     print('we exit ?')
