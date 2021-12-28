@@ -45,11 +45,12 @@ class Scanner:
             print('begin')
             os.set_blocking(fp.fileno(), False)
             while True:
-                content = fp.read(8) or []
-                print('read loop', self.exit,'-', content)
                 if self.exit:
                     print('Stopped scan')
                     return
+                content = fp.read(8) or []
+                # print('read loop', self.exit,'-', content)
+
                 for char_code in [element for element in content if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
