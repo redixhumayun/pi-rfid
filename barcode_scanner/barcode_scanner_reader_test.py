@@ -51,6 +51,8 @@ class BarcodeScannerReaderTest(Process):
             else:
                 print('before')
                 barcode = self.scanner.read()
+                if not barcode:
+                    continue
                 # barcode = 'HM0019'
                 # time.sleep(10)
                 print('after-', barcode, '-got')
