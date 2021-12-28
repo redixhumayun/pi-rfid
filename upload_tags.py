@@ -23,9 +23,12 @@ def upload_tags(queue: Queue, main_queue: Queue):
         # Always check if the queue has elements in it
         if queue.qsize() > 0:
             queue_value: Union[List[str], None] = queue.get()
+            print('upload tag value', queue_value)
 
             # Check if this process needs to quit
             if queue_value is None:
+                logger.log(
+                    logging.DEBUG, "Exiting the upload tags process")
                 should_exit_loop = True
 
             # The list of tags should have values
