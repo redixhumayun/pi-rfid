@@ -42,12 +42,10 @@ def listener_configurer():
 
 
 def listener_process(queue:Queue, configurer):
-    print('listener queue', queue.qsize())
     configurer()
     while True:
         try:
             record = queue.get()
-            print('listen record', record)
             if record is None:
                 break
             logger = logging.getLogger(record.name)

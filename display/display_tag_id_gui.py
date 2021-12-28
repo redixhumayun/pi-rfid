@@ -137,7 +137,6 @@ class DisplayTagIdGUI(Process):
 
         # Check if the queue has any elements in it
         # Do this because queue.get() is a blocking call
-        print('running display tag loop')
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
             if input_value is None:
@@ -165,7 +164,6 @@ class DisplayTagIdGUI(Process):
                 else:
                     raise Exception('This type is not understood')
 
-        print('running display tag loop ~~')
         self.check_if_scan_button_should_be_activated()
         self.check_if_upload_button_should_be_activated()
         self.root.after(300, self.run_loop)
