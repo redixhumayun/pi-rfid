@@ -47,6 +47,7 @@ def listener_process(queue:Queue, configurer):
     while True:
         try:
             record = queue.get()
+            print('listen record', record)
             if record is None:
                 break
             logger = logging.getLogger(record.name)
@@ -318,13 +319,10 @@ if __name__ == "__main__":
                 else:
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
-    print('terminate log listener')
-    logging_listener.terminate()
     for process in processes:
         print('any process', process, '-', process.name)
-        # process.terminate()
         # logging_listener.join()
-        # print('god help')
         process.join()
         print('we still stuck?')
+    logging_listener.terminate()
     print('we exit ?')

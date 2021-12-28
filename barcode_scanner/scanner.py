@@ -39,7 +39,7 @@ class Scanner:
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
             print('begin')
-            # os.set_blocking(fp.fileno(), False)
+            os.set_blocking(fp.fileno(), False)
             while True:
                 print('read loop', self.codes)
                 # content = fp.read(8)
