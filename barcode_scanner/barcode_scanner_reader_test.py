@@ -1,7 +1,5 @@
 import sys
 import logging
-import threading
-import time
 from multiprocessing import Process, Queue
 
 from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
@@ -52,14 +50,7 @@ class BarcodeScannerReaderTest(Process):
             # value = 'HM0001'
             else:
                 print('before')
-
-                def terminate():
-                    return
-
-                timer = threading.Timer(3, terminate)
-                timer.start()
                 barcode = self.scanner.read()
-                timer.cancel()
                 # barcode = 'HM0019'
                 # time.sleep(10)
                 print('after-', barcode, '-got')
