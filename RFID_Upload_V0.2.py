@@ -320,8 +320,9 @@ if __name__ == "__main__":
 
     for process in processes:
         print('any process', process, '-', process.name)
-        logging_listener.join()
+        process.terminate()
+        # logging_listener.join()
         print('god help')
-        process.join()
+        # process.join()
         print('we still stuck?')
     print('we exit ?')
