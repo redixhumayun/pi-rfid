@@ -82,7 +82,7 @@ class DisplayTagIdGUI(Process):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.main_queue.put(DisplayEnums.QUIT.value)
             self.logger.log(logging.DEBUG, "The user pressed quit")
-            # self.root.destroy()
+            self.root.destroy()
 
     def generate_new_shipment_id(self):
         """This method generates a new shipment id"""
@@ -139,10 +139,10 @@ class DisplayTagIdGUI(Process):
         # Do this because queue.get() is a blocking call
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
-            if input_value is None:
-                print('returning from display tag ')
-                self.root.destroy()
-                return
+            # if input_value is None:
+            #     print('returning from display tag ')
+            #     self.root.destroy()
+            #     return
             if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
                 self.show_message("Upload Successful", "Your data was uploaded successfully")
                 self.reset_data()

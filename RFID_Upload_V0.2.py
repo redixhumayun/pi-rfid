@@ -219,10 +219,10 @@ if __name__ == "__main__":
         processes.append(weighing_process)
         queues.append(weighing_queue)
 
-        barcode_scanner_queue = Queue()
-        barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
-        processes.append(barcode_scanner_process)
-        queues.append(barcode_scanner_queue)
+        # barcode_scanner_queue = Queue()
+        # barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
+        # processes.append(barcode_scanner_process)
+        # queues.append(barcode_scanner_queue)
     else:
         raise Exception('Unknown input for --env argument')
 
