@@ -4,7 +4,6 @@
 # https://www.raspberrypi.org/forums/viewtopic.php?f=45&t=55100
 # from 'brechmos' - thank-you!
 import os
-import time
 
 
 class Scanner:
@@ -39,12 +38,9 @@ class Scanner:
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
             print('begin')
-            os.set_blocking(fp.fileno(), False)
+            # os.set_blocking(fp.fileno(), False)
             while True:
                 content = fp.read(8)
-                print('content is ', content)
-                if content is None:
-                    continue
 
                 for char_code in [element for element in content if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
