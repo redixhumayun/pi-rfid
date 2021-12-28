@@ -274,4 +274,3 @@ class DisplayTagIdGUI(Process):
         that sub-classes multiprocessing.Process
         """
         self.draw_ui()
-        print('display run exit')
