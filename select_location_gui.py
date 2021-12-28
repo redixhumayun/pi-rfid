@@ -42,7 +42,6 @@ class SelectLocationGUI(Process):
     This method is required to be implemented by any class
     that sub-classes multiprocessing.Process
     """
-    print('running select location gui process')
     while self.possible_locations is None:
       self.possible_locations = self.queue.get()
 
