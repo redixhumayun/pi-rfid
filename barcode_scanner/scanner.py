@@ -42,8 +42,8 @@ class Scanner:
             os.set_blocking(fp.fileno(), False)
             while True:
                 print('read loop', self.codes)
-                # content = fp.read(8)
-                for char_code in [element for element in fp.read(8) if element > 0]:
+                content = fp.read(8) or []
+                for char_code in [element for element in content if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
                         return
