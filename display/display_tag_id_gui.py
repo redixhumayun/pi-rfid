@@ -139,6 +139,9 @@ class DisplayTagIdGUI(Process):
         # Do this because queue.get() is a blocking call
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
+            if input_value is None:
+                print('returning from display tag ')
+                return
             if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
                 self.show_message("Upload Successful", "Your data was uploaded successfully")
                 self.reset_data()
