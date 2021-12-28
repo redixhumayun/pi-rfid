@@ -318,9 +318,6 @@ if __name__ == "__main__":
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     for process in processes:
-        print('any process', process, '-', process.name)
         # logging_listener.join()
         process.join()
-        print('we still stuck?')
     logging_listener.terminate()
-    print('we exit ?')

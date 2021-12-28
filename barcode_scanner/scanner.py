@@ -38,7 +38,6 @@ class Scanner:
 
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
-            print('begin')
             os.set_blocking(fp.fileno(), False)
             timeout = 3
             now = time.time()
@@ -49,7 +48,6 @@ class Scanner:
                 content = fp.read(8) or []
 
                 for char_code in [element for element in content if element > 0]:
-                    print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
                         return
                     self.codes.append(char_code)
@@ -67,8 +65,6 @@ class Scanner:
 
     def read(self):
         self.read_char_codes()
-        print('main scan', self.codes)
         parsed_string:str = self.parse_char_codes()
-        print('main scan parse', parsed_string)
         self.reset()
         return parsed_string

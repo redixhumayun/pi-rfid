@@ -24,17 +24,13 @@ class BarcodeScannerReaderTest(Process):
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
 
     def run(self):
-        print('running test barcode')
         should_exit_loop = False
         while should_exit_loop is False:
-            print('in while loop - ', self.queue.qsize())
             if self.queue.qsize() > 0:
                 input_queue_value = self.queue.get()
-                print('queue value =', input_queue_value)
                 if input_queue_value is None:
                     self.logger.log(
                         logging.DEBUG, "Exiting the scanning process")
-                    self.scanner.stop_scan()
                     should_exit_loop = True
 
                 # if input_queue_value == BarcodeScannerEnums.SEND_VALUE_TO_MAIN_PROCESS.value:
@@ -49,13 +45,9 @@ class BarcodeScannerReaderTest(Process):
             #   a value back to the main process after reading something
             # value = 'HM0001'
             else:
-                print('before')
                 barcode = self.scanner.read()
                 if not barcode:
                     continue
-                # barcode = 'HM0019'
-                # time.sleep(10)
-                print('after-', barcode, '-got')
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
 
