@@ -35,6 +35,7 @@ class BarcodeScannerReaderTest(Process):
                 if input_queue_value is None:
                     self.logger.log(
                         logging.DEBUG, "Exiting the scanning process")
+                    self.scanner.stop_scan()
                     should_exit_loop = True
 
                 # if input_queue_value == BarcodeScannerEnums.SEND_VALUE_TO_MAIN_PROCESS.value:

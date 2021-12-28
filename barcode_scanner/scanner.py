@@ -25,6 +25,7 @@ class Scanner:
         self.SHIFT_CODE_LIST = [2, 2]
         self.ERROR_CHARACTER = '?'
         self.codes = []
+        self.exit = False
     
     def is_shift_valid(self, index) -> bool:
         if index < 2:
@@ -36,13 +37,18 @@ class Scanner:
     def reset(self) -> None:
         self.codes = []
 
+    def stop_scan(self) -> None:
+        self.exit = True
+
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
             print('begin')
             os.set_blocking(fp.fileno(), False)
             while True:
-                print('read loop', self.codes)
-                content = fp.read(8) or []
+                # print('read loop', self.codes)
+                content = fp.read(8)
+                if self.exit:
+                    return
                 for char_code in [element for element in content if element > 0]:
                     print('scanner', char_code, '=?', self.CR_CHAR)
                     if char_code == self.CR_CHAR:
