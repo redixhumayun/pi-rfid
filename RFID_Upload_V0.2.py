@@ -228,6 +228,7 @@ if __name__ == "__main__":
         raise Exception('Unknown input for --env argument')
 
     for process in processes:
+        print('starting process', process, '-', process.name)
         process.start()
 
     list_of_tags_to_upload = []
