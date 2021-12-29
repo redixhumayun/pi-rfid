@@ -46,10 +46,12 @@ def listener_process(queue, configurer):
     while True:
         try:
             record = queue.get()
+            print('listen record', record)
             if record is None:
                 break
             logger = logging.getLogger(record.name)
             logger.handle(record)
+            print('finished listen record', record)
         except Exception:
             import sys
             import traceback
@@ -214,10 +216,10 @@ if __name__ == "__main__":
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
-        weighing_queue = Queue()
-        weighing_process = WeighingScaleTest(weighing_queue, main_queue)
-        processes.append(weighing_process)
-        queues.append(weighing_queue)
+        # weighing_queue = Queue()
+        # weighing_process = WeighingScaleTest(weighing_queue, main_queue)
+        # processes.append(weighing_process)
+        # queues.append(weighing_queue)
 
         barcode_scanner_queue = Queue()
         barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
