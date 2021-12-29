@@ -187,11 +187,11 @@ if __name__ == "__main__":
     queues.append(display_tag_id_gui_queue)
 
     # Create the queue and process associated with uploading tags
-    upload_tags_queue = Queue()
-    upload_tags_process = Process(
-        target=upload_tags, args=(upload_tags_queue, main_queue))
-    processes.append(upload_tags_process)
-    queues.append(upload_tags_queue)
+    # upload_tags_queue = Queue()
+    # upload_tags_process = Process(
+    #     target=upload_tags, args=(upload_tags_queue, main_queue))
+    # processes.append(upload_tags_process)
+    # queues.append(upload_tags_queue)
 
     # Decide based on the environment variable passed in which process to launch
     # Either the tag reader process or the random number generator process
@@ -211,20 +211,21 @@ if __name__ == "__main__":
         processes.append(barcode_scanner_process)
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
-        read_tags_queue = Queue()
-        read_tags_process = TagReader(read_tags_queue, main_queue)
-        processes.append(read_tags_process)
-        queues.append(read_tags_queue)
+        
+        # read_tags_queue = Queue()
+        # read_tags_process = TagReader(read_tags_queue, main_queue)
+        # processes.append(read_tags_process)
+        # queues.append(read_tags_queue)
 
         # weighing_queue = Queue()
         # weighing_process = WeighingScaleTest(weighing_queue, main_queue)
         # processes.append(weighing_process)
         # queues.append(weighing_queue)
 
-        barcode_scanner_queue = Queue()
-        barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
-        processes.append(barcode_scanner_process)
-        queues.append(barcode_scanner_queue)
+        # barcode_scanner_queue = Queue()
+        # barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
+        # processes.append(barcode_scanner_process)
+        # queues.append(barcode_scanner_queue)
     else:
         raise Exception('Unknown input for --env argument')
 
