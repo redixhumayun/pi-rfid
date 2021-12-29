@@ -41,7 +41,7 @@ def listener_configurer():
 # records that are sent by the remaining processes
 
 
-def listener_process(queue:Queue, configurer):
+def listener_process(queue, configurer):
     configurer()
     while True:
         try:
@@ -139,7 +139,6 @@ if __name__ == "__main__":
     # Start GPS process and allow user to select location only if
     # location has not already been set
     if should_check_location is True:
-        print('location check')
         # Create a boolean to check if the location has been picked by the user
         has_location_been_picked = False
 
@@ -318,6 +317,6 @@ if __name__ == "__main__":
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     for process in processes:
-        # logging_listener.join()
+        logging_listener.join()
         process.join()
-    logging_listener.terminate()
+    # logging_listener.terminate()

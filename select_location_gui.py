@@ -44,7 +44,6 @@ class SelectLocationGUI(Process):
     """
     while self.possible_locations is None:
       self.possible_locations = self.queue.get()
-
     self.root = tk.Tk()
     self.canvas = tk.Canvas(self.root, bg="white",
                             width=800,

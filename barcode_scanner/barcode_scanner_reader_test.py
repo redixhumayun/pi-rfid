@@ -30,24 +30,12 @@ class BarcodeScannerReaderTest(Process):
                 input_queue_value = self.queue.get()
                 if input_queue_value is None:
                     self.logger.log(
-                        logging.DEBUG, "Exiting the scanning process")
+                        logging.DEBUG, "Exiting the barcode scanning process")
                     should_exit_loop = True
 
-                # if input_queue_value == BarcodeScannerEnums.SEND_VALUE_TO_MAIN_PROCESS.value:
-                #     self.main_queue.put({
-                #         'type': BarcodeScannerEnums.CARTON_BARCODE_SCAN_VALUE.value,
-                #         'data': {
-                #             'barcode': self.value
-                #         }
-                #     })
-
-            #   Assuming self.scanner.read() is a blocking call that will only send
-            #   a value back to the main process after reading something
-            # value = 'HM0001'
-            else:
-                barcode = self.scanner.read()
-                if not barcode:
-                    continue
+            # self.scanner.read() is a non-blocking call
+            barcode = self.scanner.read()
+            if barcode:
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
 
@@ -63,5 +51,4 @@ class BarcodeScannerReaderTest(Process):
     def decode_barcode_into_carton_code(self, barcode):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
         carton_code = api_request.get()
-        print('get api response', carton_code)
         return carton_code
