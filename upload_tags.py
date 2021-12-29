@@ -26,8 +26,6 @@ def upload_tags(queue: Queue, main_queue: Queue):
 
             # Check if this process needs to quit
             if queue_value is None:
-                logger.log(
-                    logging.DEBUG, "Exiting the upload tags process")
                 should_exit_loop = True
 
             # The list of tags should have values
