@@ -131,6 +131,7 @@ if __name__ == "__main__":
     logging_queue = Queue(-1)
     logging_listener = Process(target=listener_process, args=(
         logging_queue, listener_configurer))
+    processes.append(logging_listener)
     # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
     # later works, but it does. If you add this process to a list and start it later in a for loop
     # it will cause the same line to log thousands of times
