@@ -144,6 +144,7 @@ class DisplayTagIdGUI(Process):
                 self.reset_data()
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
+                self.reset_data()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
