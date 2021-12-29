@@ -45,6 +45,7 @@ def listener_process(queue, configurer):
     configurer()
     while True:
         try:
+            print('logging active')
             record = queue.get()
             print('listen record', record)
             if record is None:
@@ -211,7 +212,7 @@ if __name__ == "__main__":
         processes.append(barcode_scanner_process)
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
-        
+        print('hi dev')
         # read_tags_queue = Queue()
         # read_tags_process = TagReader(read_tags_queue, main_queue)
         # processes.append(read_tags_process)
