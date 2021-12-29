@@ -317,6 +317,6 @@ if __name__ == "__main__":
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     for process in processes:
-        # logging_listener.join()
+        logging_listener.join()
         process.join()
-    logging_listener.terminate()
+    # logging_listener.terminate()
