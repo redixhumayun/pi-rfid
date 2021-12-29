@@ -45,14 +45,11 @@ def listener_process(queue, configurer):
     configurer()
     while True:
         try:
-            print('logging active')
             record = queue.get()
-            print('listen record', record)
             if record is None:
                 break
             logger = logging.getLogger(record.name)
             logger.handle(record)
-            print('finished listen record', record)
         except Exception:
             import sys
             import traceback
@@ -131,11 +128,12 @@ if __name__ == "__main__":
     logging_queue = Queue(-1)
     logging_listener = Process(target=listener_process, args=(
         logging_queue, listener_configurer))
+    queues.append(logging_queue)
+
     # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
     # later works, but it does. If you add this process to a list and start it later in a for loop
     # it will cause the same line to log thousands of times
     logging_listener.start()
-    queues.append(logging_queue)
     # Start the worker process that will implement all required handlers
     worker_configurer(logging_queue)
 
@@ -213,7 +211,7 @@ if __name__ == "__main__":
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
-        read_tags_process = TagReader(read_tags_queue, main_queue)
+        read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
@@ -322,4 +320,3 @@ if __name__ == "__main__":
     for process in processes:
         logging_listener.join()
         process.join()
-    # logging_listener.terminate()

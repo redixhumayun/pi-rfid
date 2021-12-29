@@ -29,8 +29,7 @@ class BarcodeScannerReaderTest(Process):
             if self.queue.qsize() > 0:
                 input_queue_value = self.queue.get()
                 if input_queue_value is None:
-                    # self.logger.log(
-                    #     logging.DEBUG, "Exiting the barcode scanning process")
+                    self.logger.log(logging.DEBUG, "Exiting the barcode scanning process")
                     should_exit_loop = True
 
             # self.scanner.read() is a non-blocking call
