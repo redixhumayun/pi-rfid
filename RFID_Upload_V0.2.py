@@ -131,12 +131,11 @@ if __name__ == "__main__":
     logging_queue = Queue(-1)
     logging_listener = Process(target=listener_process, args=(
         logging_queue, listener_configurer))
-    processes.append(logging_listener)
     # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
     # later works, but it does. If you add this process to a list and start it later in a for loop
     # it will cause the same line to log thousands of times
-    # logging_listener.start()
-
+    logging_listener.start()
+    queues.append(logging_queue)
     # Start the worker process that will implement all required handlers
     worker_configurer(logging_queue)
 
