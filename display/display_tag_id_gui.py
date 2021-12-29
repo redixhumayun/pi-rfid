@@ -140,8 +140,7 @@ class DisplayTagIdGUI(Process):
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
             if input_value is None:
-                self.logger.log(
-                    logging.DEBUG, "Exiting the display tag process")
+                # self.logger.log(logging.DEBUG, "Exiting the display tag process")
                 self.root.destroy()
                 return
             if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
