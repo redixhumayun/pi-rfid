@@ -5,7 +5,7 @@ from multiprocessing import Process, Queue
 from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
 from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
-
+from tkinter import messagebox
 
 class BarcodeScannerReaderTest(Process):
     """
@@ -22,6 +22,7 @@ class BarcodeScannerReaderTest(Process):
             self.scanner = Scanner('/dev/usb-barcode-scanner')
         except PermissionError as err:
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
+            messagebox.showerror("Scanner Error", "Unable to open barcode reader")
 
     def run(self):
         should_exit_loop = False
