@@ -36,9 +36,9 @@ class BarcodeScannerReaderTest(Process):
             # self.scanner.read() is a non-blocking call
             barcode = self.scanner.read()
             if barcode:
-                messagebox.showinfo('Barcode', 'Barcode scanned')
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
+                messagebox.showinfo('Barcode', 'Barcode scanned')
 
     def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
