@@ -7,6 +7,7 @@ from make_api_request import MakeApiRequest
 from carton.decide_carton_type import decide_carton_type, get_carton_perforation
 from tag_reader.Entities.rfid_tag import RFIDTagEntity
 from tag_reader.tag_reader_enums import TagReaderEnums
+from exceptions import ApiError
 
 
 class TagReader(Process):
@@ -51,6 +52,9 @@ class TagReader(Process):
         """
         This method is called to return the list of tags to the main process
         """
+        if carton_type is None:
+            return
+        
         self.string_of_tags = str(len(self.tag_hex_list)) + " "
         for tag_value in self.tag_hex_list:
             self.string_of_tags += tag_value + " "
@@ -65,14 +69,29 @@ class TagReader(Process):
 
         self.string_of_tags = ""
         self.start_time = time.time()
+    
+    def send_api_error_to_main_process(self, message):
+        """
+        This method is called to return the API error message to the main process
+        """
+        self.main_queue.put({
+            'type': TagReaderEnums.DECODE_PRODUCT_ERROR,
+            'message': message
+            })
 
     def decode_epc_tags_into_product_details(self):
         """
         This method is called to convert the EPC into product details via API request
         """
         api_request = MakeApiRequest('/fabship/product/rfid')
-        decoded_product_details = api_request.get_request_with_body(
+        decoded_product_details = None
+        try:
+            decoded_product_details = api_request.get_request_with_body(
             {'epc': self.tag_hex_list})
+        except ApiError as err:
+            self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
+            return self.send_api_error_to_main_process(err.message)
+
         carton_perforation = get_carton_perforation(self.carton_barcode)
         try:
             carton_type = decide_carton_type(
@@ -144,7 +163,7 @@ class TagReader(Process):
                     self.start_time = time.time()
                 elif input_queue_string == TagReaderEnums.CLEAR_TAG_DATA.value:
                     self.logger.log(
-                        logging.DEBUG, "Clearing the bytes list for tags in preparation for an upload")
+                        logging.DEBUG, "Clearing the bytes list for tags")
                     tag_bytes_list_for_device_1.clear()
                     tag_bytes_list_for_device_2.clear()
                     self.serial_device_1.reset_input_buffer()

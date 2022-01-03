@@ -251,7 +251,7 @@ if __name__ == "__main__":
                 queue.put_nowait(None)
             break
 
-        elif isinstance(main_queue_value, dict):
+        elif isinstance(main_queue_value, dict):        
             if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS.value:
                 data = main_queue_value['data']
                 tags_list = data['tags']
@@ -295,6 +295,20 @@ if __name__ == "__main__":
                         'carton_code': carton_code
                     }
                 })
+            
+            if main_queue_value['type'] in (BarcodeScannerEnums.BARCODE_DECODE_ERROR, TagReaderEnums.DECODE_PRODUCT_ERROR):
+                error_message = main_queue_value['message']
+                display_tag_id_gui_queue.put({
+                    'type': DisplayEnums.API_ERROR,
+                    'message': error_message
+                })
+            
+            if main_queue_value['type'] == BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR:
+                error_message = main_queue_value['message']
+                display_tag_id_gui_queue.put({
+                    'type': DisplayEnums.CUSTOM_ERROR,
+                    'message': error_message
+                })
 
             if main_queue_value['type'] == DisplayEnums.UPLOAD.value:
                 shipment_id = main_queue_value['data']['shipment_id']
@@ -316,6 +330,11 @@ if __name__ == "__main__":
                     carton_pack_type = None
                     shipment_id = ''
                 else:
+                    error_message = carton_details_api_upload_call_result
+                    display_tag_id_gui_queue.put({
+                    'type': DisplayEnums.API_ERROR,
+                    'message': error_message
+                    })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
     for process in processes:

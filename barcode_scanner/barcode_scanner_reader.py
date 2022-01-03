@@ -5,6 +5,7 @@ from multiprocessing import Process, Queue
 from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
 from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
+from exceptions import ApiError
 
 
 class BarcodeScannerReader(Process):
@@ -22,6 +23,11 @@ class BarcodeScannerReader(Process):
             self.scanner = Scanner('/dev/usb-barcode-scanner')
         except PermissionError as err:
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
+            message = 'Unable to open barcode scanner reader'
+            self.main_queue.put({
+                'type': BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR,
+                'message': message
+                })
 
     def run(self):
         should_exit_loop = False
@@ -49,5 +55,21 @@ class BarcodeScannerReader(Process):
 
     def decode_barcode_into_carton_code(self, barcode):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
-        carton_code = api_request.get()
-        return carton_code
+        
+        try:
+            carton_code = api_request.get()
+            return carton_code
+        except ApiError as err:
+            self.send_api_error_to_main_process(err.message)
+            return None
+           
+
+    def send_api_error_to_main_process(self, message):
+        """
+        This method is called to return the API error message to the main process
+        """
+        self.main_queue.put({
+            'type': BarcodeScannerEnums.BARCODE_DECODE_ERROR,
+            'message': message 
+            })
+

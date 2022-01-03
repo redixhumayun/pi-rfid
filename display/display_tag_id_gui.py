@@ -157,6 +157,13 @@ class DisplayTagIdGUI(Process):
                     self.tags_checkbox_variable.set(True)
 
                     self.carton_type_output['text'] = input_value['data']['carton_type']
+                elif input_value['type'] == DisplayEnums.API_ERROR:
+                    message = input_value['message']
+                    self.show_error('Server Error', message)
+                    self.reset_data()
+                elif input_value['type'] == DisplayEnums.CUSTOM_ERROR:
+                    message = input_value['message']
+                    self.show_error('Error', message)
                 else:
                     raise Exception('This type is not understood')
 

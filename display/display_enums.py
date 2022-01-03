@@ -13,3 +13,5 @@ class DisplayEnums(Enum):
     SHOW_WEIGHT = 'show weight'
     SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE = 'show number of tags and carton type'    
     QUIT = 'quit'
+    API_ERROR = 'api error'
+    CUSTOM_ERROR = 'custom error'
