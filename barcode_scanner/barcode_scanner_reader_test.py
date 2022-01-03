@@ -5,7 +5,6 @@ from multiprocessing import Process, Queue
 from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
 from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
-from tkinter import messagebox
 
 class BarcodeScannerReaderTest(Process):
     """
@@ -22,7 +21,6 @@ class BarcodeScannerReaderTest(Process):
             self.scanner = Scanner('/dev/usb-barcode-scanner')
         except PermissionError as err:
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
-            messagebox.showerror("Scanner Error", "Unable to open barcode reader")
 
     def run(self):
         should_exit_loop = False
@@ -33,12 +31,10 @@ class BarcodeScannerReaderTest(Process):
                     self.logger.log(logging.DEBUG, "Exiting the barcode scanning process")
                     should_exit_loop = True
 
-            # self.scanner.read() is a non-blocking call
-            barcode = self.scanner.read()
+            self.scanner.read() is a non-blocking call
             if barcode:
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
-                messagebox.showinfo('Barcode', 'Barcode scanned')
 
     def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
