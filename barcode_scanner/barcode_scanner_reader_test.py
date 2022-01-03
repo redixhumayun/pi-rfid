@@ -31,7 +31,8 @@ class BarcodeScannerReaderTest(Process):
                     self.logger.log(logging.DEBUG, "Exiting the barcode scanning process")
                     should_exit_loop = True
 
-            self.scanner.read() is a non-blocking call
+            #self.scanner.read() is a non-blocking call
+            barcode = self.scanner.read()
             if barcode:
                 carton_code = self.decode_barcode_into_carton_code(barcode)
                 self.send_value_to_main_process(carton_code, barcode)
