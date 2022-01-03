@@ -62,7 +62,6 @@ class BarcodeScannerReaderTest(Process):
         except ApiError as err:
             self.send_api_error_to_main_process(err.message)
             return None
-           
 
     def send_api_error_to_main_process(self, message):
         """
