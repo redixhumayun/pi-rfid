@@ -2,6 +2,7 @@ import logging
 from os import path
 
 from make_api_request import MakeApiRequest
+from exceptions import ApiError
 
 logger = logging.getLogger('upload_carton_details')
 api_request = MakeApiRequest('/fabship/product/rfid')
@@ -37,10 +38,10 @@ def upload_carton_details(list_of_epc_tags, carton_weight, carton_code, carton_b
         logger.log(logging.DEBUG,
                     f"Received the following response: {response}")
         return True
-    except Exception as err:
+    except ApiError as err:
         logger.log(logging.ERROR,
-                    f"Error raised while uploading tags: {err}")
-        return False
+                    f"Error raised while uploading tags: {err.message}")
+        return err.message
 
 
 

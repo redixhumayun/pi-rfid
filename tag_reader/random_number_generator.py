@@ -51,7 +51,7 @@ class RandomNumberGenerator(Process):
         return ''.join(["{}".format(randint(0, 9)) for num in range(0, 24)])
 
     def generate_random_epc_tag(self) -> str:
-        random_epc_code = '303ACA4782' + self.generate_random_character() + randint(10**(13-1), (10**13)-1)
+        random_epc_code = '303ACA4782' + self.generate_random_character() + str(randint(10**(13-1), (10**13)-1))
         return random_epc_code
 
     def generate_random_character(self) -> str:

@@ -144,6 +144,7 @@ class DisplayTagIdGUI(Process):
                 self.reset_data()
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
+                self.reset_data()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
@@ -156,9 +157,15 @@ class DisplayTagIdGUI(Process):
                     self.tags_checkbox_variable.set(True)
 
                     self.carton_type_output['text'] = input_value['data']['carton_type']
+                elif input_value['type'] == DisplayEnums.API_ERROR:
+                    message = input_value['message']
+                    self.show_error('Server Error', message)
+                    self.reset_data()
+                elif input_value['type'] == DisplayEnums.CUSTOM_ERROR:
+                    message = input_value['message']
+                    self.show_error('Error', message)
                 else:
                     raise Exception('This type is not understood')
-
 
         self.check_if_scan_button_should_be_activated()
         self.check_if_upload_button_should_be_activated()
