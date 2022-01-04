@@ -3,6 +3,7 @@ import os
 import logging
 import json
 from dotenv import load_dotenv
+from exceptions import ApiError
 
 """
 This class will be used to construct and carry out API requests.
@@ -81,7 +82,8 @@ class MakeApiRequest():
         error_response = json.loads(err.response.text)
         error_message = error_response['message']
         self.logger.log(logging.ERROR, f"There was an error while making the GET request: {error_message}")
-        raise err
+        raise ApiError(error_message) from err
+
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the GET request: {err}")
       raise err
@@ -101,7 +103,8 @@ class MakeApiRequest():
         error_response = json.loads(err.response.text)
         error_message = error_response['message']
         self.logger.log(logging.ERROR, f"There was an error while making the POST request: {error_message}")
-        raise err
+        raise ApiError(error_message) from err
+
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the POST request: {err}")
       raise err
@@ -121,7 +124,8 @@ class MakeApiRequest():
         error_response = json.loads(err.response.text)
         error_message = error_response['message']
         self.logger.log(logging.ERROR, f"There was an error while making the GET request with a body: {error_message}")
-        raise err
+        raise ApiError(error_message) from err
+
     except requests.exceptions.MissingSchema as err:
       self.logger.log(logging.ERROR, f"There was an error while making the GET request with a body: {err}")
       raise err

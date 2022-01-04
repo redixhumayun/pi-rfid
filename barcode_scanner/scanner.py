@@ -3,6 +3,9 @@
 # Inspired by https://www.piddlerintheroot.com/barcode-scanner/
 # https://www.raspberrypi.org/forums/viewtopic.php?f=45&t=55100
 # from 'brechmos' - thank-you!
+import os
+import time
+
 
 class Scanner:
     def __init__(self, file: str):
@@ -22,7 +25,7 @@ class Scanner:
         self.SHIFT_CODE_LIST = [2, 2]
         self.ERROR_CHARACTER = '?'
         self.codes = []
-    
+
     def is_shift_valid(self, index) -> bool:
         if index < 2:
             return False
@@ -35,8 +38,14 @@ class Scanner:
 
     def read_char_codes(self) -> None:
         with open(self.file, 'rb') as fp:
+            os.set_blocking(fp.fileno(), False)
+            timeout = 3  # 3 seconds time out
+            start_time = time.time()
             while True:
-                for char_code in [element for element in fp.read(8) if element > 0]:
+                if time.time() > start_time + timeout:
+                    return
+                content = fp.read(8) or ''
+                for char_code in [element for element in content if element > 0]:
                     if char_code == self.CR_CHAR:
                         return
                     self.codes.append(char_code)
