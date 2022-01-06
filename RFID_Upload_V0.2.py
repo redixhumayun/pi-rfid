@@ -186,13 +186,6 @@ if __name__ == "__main__":
     processes.append(display_tag_id_gui_process)
     queues.append(display_tag_id_gui_queue)
 
-    # Create the queue and process associated with uploading tags
-    upload_tags_queue = Queue()
-    upload_tags_process = Process(
-        target=upload_tags, args=(upload_tags_queue, main_queue))
-    processes.append(upload_tags_process)
-    queues.append(upload_tags_queue)
-
     # Decide based on the environment variable passed in which process to launch
     # Either the tag reader process or the random number generator process
     if environment == EnvironmentVariable.PRODUCTION.value:

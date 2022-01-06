@@ -31,6 +31,7 @@ class DisplayTagIdGUI(Process):
         self.shipment_id = generate_shipment_id()
         self.scan_button = None
         self.upload_button = None
+        self.loader = Label(self.root, text="Processing ..")
 
         #   Define the variables for storing the checkbox value
         self.carton_barcode_checkbox_variable = BooleanVar(False)
@@ -50,6 +51,10 @@ class DisplayTagIdGUI(Process):
     def show_message(self, title: str, body: str) -> None:
         """This method will show an info message"""
         messagebox.showinfo(f"{title}", f"{body}")
+
+    def show_loader(self):
+        print('load')
+        self.loader.place(relx=0.5, rely = 0.5, anchor="center")
 
     def scan(self):
         """
@@ -222,9 +227,9 @@ class DisplayTagIdGUI(Process):
         weight_checkbox.config(font=("TkDefaultFont", 15))
 
         # Create the reset button
-        reset_button = Button(left_frame, text="Reset Data", command=self.reset_data)
+        reset_button = Button(left_frame, text="Reset Data", command=self.show_loader)
         reset_button.grid(row = 3, column = 0, pady=25)
-        
+
         #   Create the frame on the right
         right_frame = Frame(self.root, width=650, height=800)
         right_frame.grid(row=1, column=1)
