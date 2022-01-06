@@ -6,7 +6,6 @@ from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
 from display.generate_shipment_id import generate_shipment_id
-import time
 
 class DisplayTagIdGUI(Process):
     """
