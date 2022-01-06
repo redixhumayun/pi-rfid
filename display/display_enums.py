@@ -15,3 +15,4 @@ class DisplayEnums(Enum):
     QUIT = 'quit'
     API_ERROR = 'api error'
     CUSTOM_ERROR = 'custom error'
+    RESET = 'reset'

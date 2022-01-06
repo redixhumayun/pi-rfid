@@ -108,6 +108,7 @@ class DisplayTagIdGUI(Process):
 
     def reset_data(self):
         """This method will reset all data from the UI after an upload is successful"""
+        self.main_queue.put(DisplayEnums.RESET.value)
         self.carton_barcode_checkbox_variable.set(False)
         self.tags_checkbox_variable.set(False)
         self.weight_checkbox_variable.set(False)
@@ -177,15 +178,18 @@ class DisplayTagIdGUI(Process):
         self.root.columnconfigure(1, weight=1)
 
         self.shipment_id_label = Label(self.root, text=f"Shipment ID: {self.shipment_id}")
-        self.shipment_id_label.grid(row = 0, column = 0, pady=50)
+        self.shipment_id_label.grid(row = 0, column = 0, pady=30)
         self.shipment_id_label.config(font=("TkDefaultFont", 15))
 
         new_shipment_id_button = Button(self.root, text="Generate New Shipment ID", command=self.generate_new_shipment_id)
-        new_shipment_id_button.grid(row = 0, column = 1, pady=50)
+        new_shipment_id_button.grid(row = 0, column = 1, pady=30)
+
+        reset_button = Button(self.root, text="Reset Data", command=self.reset_data)
+        reset_button.grid(row = 1, column = 1, pady=5)
 
         #   Create the frame on the left
         left_frame = Frame(self.root, width=400, height=800)
-        left_frame.grid(row=1, column=0, padx=50)
+        left_frame.grid(row=2, column=0, padx=50)
 
         #   Create the variables for the checkboxes
         self.carton_barcode_checkbox_variable = BooleanVar(value=False)
@@ -222,7 +226,7 @@ class DisplayTagIdGUI(Process):
 
         #   Create the frame on the right
         right_frame = Frame(self.root, width=650, height=800)
-        right_frame.grid(row=1, column=1)
+        right_frame.grid(row=2, column=1, pady=10)
 
         #   Create the frame where the output data will be shown
         output_data_frame = Frame(right_frame, width=650, height=350)

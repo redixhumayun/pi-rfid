@@ -212,12 +212,12 @@ if __name__ == "__main__":
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
-        read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
+        read_tags_process = TagReader(read_tags_queue, main_queue)
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
         weighing_queue = Queue()
-        weighing_process = WeighingScaleTest(weighing_queue, main_queue)
+        weighing_process = WeighingScale(weighing_queue, main_queue)
         processes.append(weighing_process)
         queues.append(weighing_queue)
 
@@ -245,6 +245,10 @@ if __name__ == "__main__":
             list_of_tags_to_upload.clear()
             read_tags_queue.put(TagReaderEnums.START_READING_TAGS.value)
             weighing_queue.put(WeighingScaleEnums.START_WEIGHING.value)
+        
+        elif main_queue_value == DisplayEnums.RESET.value:
+            list_of_tags_to_upload.clear()
+            read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
             for queue in queues:
