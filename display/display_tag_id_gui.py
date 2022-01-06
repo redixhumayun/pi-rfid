@@ -6,6 +6,7 @@ from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
 from display.generate_shipment_id import generate_shipment_id
+import time
 
 class DisplayTagIdGUI(Process):
     """
@@ -31,7 +32,6 @@ class DisplayTagIdGUI(Process):
         self.shipment_id = generate_shipment_id()
         self.scan_button = None
         self.upload_button = None
-        self.loader = Label(self.root, text="Processing ..")
 
         #   Define the variables for storing the checkbox value
         self.carton_barcode_checkbox_variable = BooleanVar(False)
@@ -52,9 +52,11 @@ class DisplayTagIdGUI(Process):
         """This method will show an info message"""
         messagebox.showinfo(f"{title}", f"{body}")
 
-    def show_loader(self):
-        print('load')
-        self.loader.place(relx=0.5, rely = 0.5, anchor="center")
+    def show_cursor_busy(self):
+        self.root.config(cursor="watch")
+    
+    def remove_cursor_busy(self):
+        self.root.config(cursor="")
 
     def scan(self):
         """
@@ -151,6 +153,10 @@ class DisplayTagIdGUI(Process):
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
                 self.reset_data()
+            if input_value == DisplayEnums.API_PROCESSING.value:
+                self.show_cursor_busy()
+            if input_value == DisplayEnums.API_COMPLETED.value:
+                self.remove_cursor_busy()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
@@ -227,7 +233,7 @@ class DisplayTagIdGUI(Process):
         weight_checkbox.config(font=("TkDefaultFont", 15))
 
         # Create the reset button
-        reset_button = Button(left_frame, text="Reset Data", command=self.show_loader)
+        reset_button = Button(left_frame, text="Reset Data", command=self.reset_data)
         reset_button.grid(row = 3, column = 0, pady=25)
 
         #   Create the frame on the right

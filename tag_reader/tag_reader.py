@@ -86,8 +86,10 @@ class TagReader(Process):
         api_request = MakeApiRequest('/fabship/product/rfid')
         decoded_product_details = None
         try:
+            self.main_queue.put(TagReaderEnums.API_PROCESSING.value)
             decoded_product_details = api_request.get_request_with_body(
             {'epc': self.tag_hex_list})
+            self.main_queue.put(TagReaderEnums.API_COMPLETED.value)
         except ApiError as err:
             self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
             return self.send_api_error_to_main_process(err.message)

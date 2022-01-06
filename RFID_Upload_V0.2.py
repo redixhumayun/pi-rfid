@@ -242,6 +242,12 @@ if __name__ == "__main__":
         elif main_queue_value == DisplayEnums.RESET.value:
             list_of_tags_to_upload.clear()
             read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+        
+        elif main_queue_value == DisplayEnums.API_PROCESSING.value:
+            display_tag_id_gui_queue.put(DisplayEnums.API_PROCESSING.value)
+        
+        elif main_queue_value == DisplayEnums.API_COMPLETED.value:
+            display_tag_id_gui_queue.put(DisplayEnums.API_COMPLETED.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
             for queue in queues:

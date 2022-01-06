@@ -16,3 +16,6 @@ class DisplayEnums(Enum):
     API_ERROR = 'api error'
     CUSTOM_ERROR = 'custom error'
     RESET = 'reset'
+    API_PROCESSING = 'api processing'
+    API_COMPLETED = 'api completed'
+    

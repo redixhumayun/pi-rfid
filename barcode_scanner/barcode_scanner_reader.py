@@ -57,7 +57,9 @@ class BarcodeScannerReader(Process):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
         
         try:
+            self.main_queue.put(BarcodeScannerEnums.API_PROCESSING.value)
             carton_code = api_request.get()
+            self.main_queue.put(BarcodeScannerEnums.API_COMPLETED.value)
             return carton_code
         except ApiError as err:
             self.send_api_error_to_main_process(err.message)
