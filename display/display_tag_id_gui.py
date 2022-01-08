@@ -6,6 +6,8 @@ from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
 from display.generate_shipment_id import generate_shipment_id
+from common_enums import CommonEnums
+
 
 class DisplayTagIdGUI(Process):
     """
@@ -52,9 +54,11 @@ class DisplayTagIdGUI(Process):
         messagebox.showinfo(f"{title}", f"{body}")
 
     def show_cursor_busy(self):
+        """This method changes the cursor to busy"""
         self.root.config(cursor="watch")
     
     def remove_cursor_busy(self):
+        """This method changes the cursor back to normal"""
         self.root.config(cursor="")
 
     def scan(self):
@@ -152,9 +156,9 @@ class DisplayTagIdGUI(Process):
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
                 self.reset_data()
-            if input_value == DisplayEnums.API_PROCESSING.value:
+            if input_value == CommonEnums.API_PROCESSING.value:
                 self.show_cursor_busy()
-            if input_value == DisplayEnums.API_COMPLETED.value:
+            if input_value == CommonEnums.API_COMPLETED.value:
                 self.remove_cursor_busy()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
@@ -168,7 +172,7 @@ class DisplayTagIdGUI(Process):
                     self.tags_checkbox_variable.set(True)
 
                     self.carton_type_output['text'] = input_value['data']['carton_type']
-                elif input_value['type'] == DisplayEnums.API_ERROR:
+                elif input_value['type'] == CommonEnums.API_ERROR.value:
                     message = input_value['message']
                     self.show_error('Server Error', message)
                     self.reset_data()

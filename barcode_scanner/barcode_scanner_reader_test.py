@@ -6,6 +6,8 @@ from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
 from barcode_scanner.scanner import Scanner
 from make_api_request import MakeApiRequest
 from exceptions import ApiError
+from common_enums import CommonEnums
+
 
 class BarcodeScannerReaderTest(Process):
     """
@@ -55,21 +57,20 @@ class BarcodeScannerReaderTest(Process):
 
     def decode_barcode_into_carton_code(self, barcode):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
-        
+        self.main_queue.put(CommonEnums.API_PROCESSING.value)
+        carton_code = None
         try:
-            self.main_queue.put(BarcodeScannerEnums.API_PROCESSING.value)
             carton_code = api_request.get()
-            self.main_queue.put(BarcodeScannerEnums.API_COMPLETED.value)
-            return carton_code
         except ApiError as err:
             self.send_api_error_to_main_process(err.message)
-            return None
+        self.main_queue.put(CommonEnums.API_COMPLETED.value)
+        return carton_code
 
     def send_api_error_to_main_process(self, message):
         """
         This method is called to return the API error message to the main process
         """
         self.main_queue.put({
-            'type': BarcodeScannerEnums.BARCODE_DECODE_ERROR,
+            'type': CommonEnums.API_ERROR.value,
             'message': message 
             })

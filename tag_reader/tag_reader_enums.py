@@ -6,6 +6,3 @@ class TagReaderEnums(Enum):
   DONE_READING_TAGS = 'done reading tags'
   RECEIVED_CARTON_BARCODE_VALUE = 'received carton barcode value'
   CLEAR_TAG_DATA = 'clear tag data'
-  DECODE_PRODUCT_ERROR = 'decode product error'
-  API_PROCESSING = 'api processing'
-  API_COMPLETED = 'api completed'
