@@ -303,14 +303,14 @@ if __name__ == "__main__":
             if main_queue_value['type'] == CommonEnums.API_ERROR.value:
                 error_message = main_queue_value['message']
                 display_tag_id_gui_queue.put({
-                    'type': CommonEnums.API_ERROR,
+                    'type': CommonEnums.API_ERROR.value,
                     'message': error_message
                 })
             
             if main_queue_value['type'] == BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR:
                 error_message = main_queue_value['message']
                 display_tag_id_gui_queue.put({
-                    'type': DisplayEnums.CUSTOM_ERROR,
+                    'type': DisplayEnums.CUSTOM_ERROR.value,
                     'message': error_message
                 })
 
