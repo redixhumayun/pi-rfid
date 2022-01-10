@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue
 import serial
 import logging
-
+from time import sleep
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
 class WeighingScale(Process):
@@ -23,6 +23,8 @@ class WeighingScale(Process):
             raise err
         should_exit_loop = False
         while should_exit_loop is False:
+            # 50ms sleep to schedule out the process and reduce CPU usage
+            sleep(0.05)
             if self.queue.qsize() > 0:
                 input_queue_string = self.queue.get()
                 if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:

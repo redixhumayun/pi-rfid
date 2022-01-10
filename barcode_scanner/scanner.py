@@ -42,6 +42,8 @@ class Scanner:
             timeout = 3  # 3 seconds time out
             start_time = time.time()
             while True:
+                # 50ms sleep to schedule out the process and reduce CPU usage
+                time.sleep(0.05)
                 if time.time() > start_time + timeout:
                     return
                 content = fp.read(8) or ''
