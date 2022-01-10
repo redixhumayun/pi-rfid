@@ -93,9 +93,10 @@ class TagReader(Process):
         except ApiError as err:
             self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
             self.send_api_error_to_main_process(err.message)
-        return self.main_queue.put(CommonEnums.API_COMPLETED.value)
+        self.main_queue.put(CommonEnums.API_COMPLETED.value)
 
         carton_perforation = get_carton_perforation(self.carton_barcode)
+        carton_type = None
         try:
             carton_type = decide_carton_type(
                 decoded_product_details, carton_perforation)
