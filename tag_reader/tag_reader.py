@@ -8,6 +8,7 @@ from carton.decide_carton_type import decide_carton_type, get_carton_perforation
 from tag_reader.Entities.rfid_tag import RFIDTagEntity
 from tag_reader.tag_reader_enums import TagReaderEnums
 from exceptions import ApiError
+from common_enums import CommonEnums
 
 
 class TagReader(Process):
@@ -75,7 +76,7 @@ class TagReader(Process):
         This method is called to return the API error message to the main process
         """
         self.main_queue.put({
-            'type': TagReaderEnums.DECODE_PRODUCT_ERROR,
+            'type': CommonEnums.API_ERROR.value,
             'message': message
             })
 
@@ -85,12 +86,14 @@ class TagReader(Process):
         """
         api_request = MakeApiRequest('/fabship/product/rfid')
         decoded_product_details = None
+        self.main_queue.put(CommonEnums.API_PROCESSING.value)
         try:
             decoded_product_details = api_request.get_request_with_body(
-            {'epc': self.tag_hex_list})
+                {'epc': self.tag_hex_list})
         except ApiError as err:
             self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
             return self.send_api_error_to_main_process(err.message)
+        self.main_queue.put(CommonEnums.API_COMPLETED.value)
 
         carton_perforation = get_carton_perforation(self.carton_barcode)
         try:

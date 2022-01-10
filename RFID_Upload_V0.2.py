@@ -23,6 +23,7 @@ from display.display_enums import DisplayEnums
 from barcode_scanner.barcode_scanner_reader import BarcodeScannerReader
 from barcode_scanner.barcode_scanner_reader_test import BarcodeScannerReaderTest
 from upload_carton_details import upload_carton_details
+from common_enums import CommonEnums
 
 # This method is used to configure the watchtower handler which will be used to
 # log the events to AWS CloudWatch
@@ -186,13 +187,6 @@ if __name__ == "__main__":
     processes.append(display_tag_id_gui_process)
     queues.append(display_tag_id_gui_queue)
 
-    # Create the queue and process associated with uploading tags
-    upload_tags_queue = Queue()
-    upload_tags_process = Process(
-        target=upload_tags, args=(upload_tags_queue, main_queue))
-    processes.append(upload_tags_process)
-    queues.append(upload_tags_queue)
-
     # Decide based on the environment variable passed in which process to launch
     # Either the tag reader process or the random number generator process
     if environment == EnvironmentVariable.PRODUCTION.value:
@@ -245,6 +239,16 @@ if __name__ == "__main__":
             list_of_tags_to_upload.clear()
             read_tags_queue.put(TagReaderEnums.START_READING_TAGS.value)
             weighing_queue.put(WeighingScaleEnums.START_WEIGHING.value)
+        
+        elif main_queue_value == DisplayEnums.RESET.value:
+            list_of_tags_to_upload.clear()
+            read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+        
+        elif main_queue_value == CommonEnums.API_PROCESSING.value:
+            display_tag_id_gui_queue.put(CommonEnums.API_PROCESSING.value)
+        
+        elif main_queue_value == CommonEnums.API_COMPLETED.value:
+            display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
             for queue in queues:
@@ -296,10 +300,10 @@ if __name__ == "__main__":
                     }
                 })
             
-            if main_queue_value['type'] in (BarcodeScannerEnums.BARCODE_DECODE_ERROR, TagReaderEnums.DECODE_PRODUCT_ERROR):
+            if main_queue_value['type'] == CommonEnums.API_ERROR.value:
                 error_message = main_queue_value['message']
                 display_tag_id_gui_queue.put({
-                    'type': DisplayEnums.API_ERROR,
+                    'type': CommonEnums.API_ERROR,
                     'message': error_message
                 })
             
@@ -332,8 +336,8 @@ if __name__ == "__main__":
                 else:
                     error_message = carton_details_api_upload_call_result
                     display_tag_id_gui_queue.put({
-                    'type': DisplayEnums.API_ERROR,
-                    'message': error_message
+                        'type': DisplayEnums.API_ERROR,
+                        'message': error_message
                     })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 

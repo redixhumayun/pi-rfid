@@ -6,6 +6,8 @@ from tkinter import Button, Canvas, Checkbutton, ttk, messagebox, Frame
 from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
 from display.generate_shipment_id import generate_shipment_id
+from common_enums import CommonEnums
+
 
 class DisplayTagIdGUI(Process):
     """
@@ -50,6 +52,14 @@ class DisplayTagIdGUI(Process):
     def show_message(self, title: str, body: str) -> None:
         """This method will show an info message"""
         messagebox.showinfo(f"{title}", f"{body}")
+
+    def show_cursor_busy(self):
+        """This method changes the cursor to busy"""
+        self.root.config(cursor="watch")
+    
+    def remove_cursor_busy(self):
+        """This method changes the cursor back to normal"""
+        self.root.config(cursor="")
 
     def scan(self):
         """
@@ -108,6 +118,7 @@ class DisplayTagIdGUI(Process):
 
     def reset_data(self):
         """This method will reset all data from the UI after an upload is successful"""
+        self.main_queue.put(DisplayEnums.RESET.value)
         self.carton_barcode_checkbox_variable.set(False)
         self.tags_checkbox_variable.set(False)
         self.weight_checkbox_variable.set(False)
@@ -145,6 +156,10 @@ class DisplayTagIdGUI(Process):
             if input_value == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
                 self.reset_data()
+            if input_value == CommonEnums.API_PROCESSING.value:
+                self.show_cursor_busy()
+            if input_value == CommonEnums.API_COMPLETED.value:
+                self.remove_cursor_busy()
             if isinstance(input_value, dict):
                 if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
                     self.barcode_output['text'] = input_value['data']['barcode']
@@ -157,7 +172,7 @@ class DisplayTagIdGUI(Process):
                     self.tags_checkbox_variable.set(True)
 
                     self.carton_type_output['text'] = input_value['data']['carton_type']
-                elif input_value['type'] == DisplayEnums.API_ERROR:
+                elif input_value['type'] == CommonEnums.API_ERROR.value:
                     message = input_value['message']
                     self.show_error('Server Error', message)
                     self.reset_data()
@@ -219,6 +234,10 @@ class DisplayTagIdGUI(Process):
         
         weight_checkbox.grid(row=2, column=0, sticky=(E, W))
         weight_checkbox.config(font=("TkDefaultFont", 15))
+
+        # Create the reset button
+        reset_button = Button(left_frame, text="Reset Data", command=self.reset_data)
+        reset_button.grid(row = 3, column = 0, pady=25)
 
         #   Create the frame on the right
         right_frame = Frame(self.root, width=650, height=800)
