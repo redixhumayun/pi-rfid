@@ -92,8 +92,8 @@ class TagReader(Process):
                 {'epc': self.tag_hex_list})
         except ApiError as err:
             self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
-            return self.send_api_error_to_main_process(err.message)
-        self.main_queue.put(CommonEnums.API_COMPLETED.value)
+            self.send_api_error_to_main_process(err.message)
+        return self.main_queue.put(CommonEnums.API_COMPLETED.value)
 
         carton_perforation = get_carton_perforation(self.carton_barcode)
         try:
