@@ -1,5 +1,6 @@
 from carton.carton_type import CartonType
 from carton.carton_perforation import CartonPerforation
+from exceptions import UnknownCartonTypeError
 
 def get_carton_perforation(carton_code):
     if carton_code[-1] == 'P':
@@ -36,4 +37,4 @@ def decide_carton_type(product_details_in_carton, carton_type):
         # Carton type is ratio
         return CartonType.ASSORTED.value
 
-    raise Exception('This carton type is not identifiable')
+    raise UnknownCartonTypeError('This carton type is not identifiable')
