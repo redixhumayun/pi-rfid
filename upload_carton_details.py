@@ -42,17 +42,3 @@ def upload_carton_details(list_of_epc_tags, carton_weight, carton_code, carton_b
         logger.log(logging.ERROR,
                     f"Error raised while uploading tags: {err.message}")
         return err.message
-
-
-
-{
-    "location": "IDU1",
-    "shipmentId": "123",
-    "cartonCode": "SC5b",
-    "cartonBarcode": "HM0001",
-    "cartonWeight": 9.82,
-    "packType": "assorted",
-    "epcs": [
-        "303ACA4782A055999C82D7DB, 303ACA4782A055999C82DA71"
-    ]
-}

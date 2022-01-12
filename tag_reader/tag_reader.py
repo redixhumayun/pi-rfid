@@ -47,15 +47,11 @@ class TagReader(Process):
         self.start_time = 0
         self.logger = logging.getLogger('tag_reader')
         self.carton_barcode = None
-        self.carton_type = None
 
-    def send_tag_details_to_main_process(self, carton_type):
+    def send_tag_details_to_main_process(self):
         """
         This method is called to return the list of tags to the main process
         """
-        if carton_type is None:
-            return
-        
         self.string_of_tags = str(len(self.tag_hex_list)) + " "
         for tag_value in self.tag_hex_list:
             self.string_of_tags += tag_value + " "
@@ -63,7 +59,6 @@ class TagReader(Process):
         self.main_queue.put({
             'type': TagReaderEnums.DONE_READING_TAGS.value,
             'data': {
-                'carton_type': carton_type,
                 'tags': self.string_of_tags
             }
         })
@@ -108,7 +103,6 @@ class TagReader(Process):
         """This method is called to convert EPC bytes to hex values and add them to the list if valid"""
         rfid_tag_entity = RFIDTagEntity()
         tag_hex_value = rfid_tag_entity.convert_tag_from_bytes_to_hex(tag_bytes_list=tag_bytes_list)
-
         if tag_hex_value in self.tag_hex_list:
             #   Do nothing if the tag is already listed
             return
@@ -196,7 +190,6 @@ class TagReader(Process):
                 read_bytes_from_device_2, "big")
 
             sys.stdout.flush()
-
             # The starting byte of any tag id is 0x11 (which is 17)
             if int_value_from_device_1 == 0x11:
                 should_read_tags_from_device_1 = True
@@ -232,9 +225,9 @@ class TagReader(Process):
             #   2. The tag hex list actually has values
             #   3. The time lapsed has been at least 2 seconds
             if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
-                if self.carton_type is None:
-                    self.carton_type = self.decode_epc_tags_into_product_details()
-                self.send_tag_details_to_main_process(carton_type=self.carton_type)
+                # if self.carton_type is None:
+                #     self.carton_type = self.decode_epc_tags_into_product_details()
+                self.send_tag_details_to_main_process()
 
         # Once the loop exits, perform clean up and close serial ports
         self.serial_device_1.flush()

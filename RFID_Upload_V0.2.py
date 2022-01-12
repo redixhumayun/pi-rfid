@@ -14,7 +14,6 @@ from display.display_tag_id_gui import DisplayTagIdGUI
 from tag_reader.tag_reader import TagReader
 from tag_reader.tag_reader_enums import TagReaderEnums
 from tag_reader.random_number_generator import RandomNumberGenerator
-from upload_tags import upload_tags
 from weighing_scale.weighing_scale import WeighingScale
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 from weighing_scale.weighing_scale_test import WeighingScaleTest
@@ -23,7 +22,9 @@ from display.display_enums import DisplayEnums
 from barcode_scanner.barcode_scanner_reader import BarcodeScannerReader
 from barcode_scanner.barcode_scanner_reader_test import BarcodeScannerReaderTest
 from upload_carton_details import upload_carton_details
+from decode_carton_type import decode_epc_tags_into_product_details, get_carton_pack_type
 from common_enums import CommonEnums
+from exceptions import ApiError, UnknownCartonTypeError
 
 # This method is used to configure the watchtower handler which will be used to
 # log the events to AWS CloudWatch
@@ -206,17 +207,17 @@ if __name__ == "__main__":
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
-        read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
+        read_tags_process = TagReader(read_tags_queue, main_queue)
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
         weighing_queue = Queue()
-        weighing_process = WeighingScaleTest(weighing_queue, main_queue)
+        weighing_process = WeighingScale(weighing_queue, main_queue)
         processes.append(weighing_process)
         queues.append(weighing_queue)
 
         barcode_scanner_queue = Queue()
-        barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
+        barcode_scanner_process = BarcodeScannerReader(barcode_scanner_queue, main_queue)
         processes.append(barcode_scanner_process)
         queues.append(barcode_scanner_queue)
     else:
@@ -259,14 +260,12 @@ if __name__ == "__main__":
             if main_queue_value['type'] == TagReaderEnums.DONE_READING_TAGS.value:
                 data = main_queue_value['data']
                 tags_list = data['tags']
-                carton_pack_type = data['carton_type']
                 split_string = tags_list.split()
                 number_of_tags = split_string[0]
                 display_tag_id_gui_queue.put({
-                    'type': DisplayEnums.SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE.value,
+                    'type': DisplayEnums.SHOW_NUMBER_OF_TAGS.value,
                     'data': {
-                        'tags': number_of_tags,
-                        'carton_type': carton_pack_type
+                        'tags': number_of_tags
                     }
                 })
 
@@ -313,6 +312,29 @@ if __name__ == "__main__":
                     'type': DisplayEnums.CUSTOM_ERROR.value,
                     'message': error_message
                 })
+            
+            if main_queue_value['type'] == DisplayEnums.GET_CARTON_TYPE.value:
+                try:
+                    product_details = decode_epc_tags_into_product_details(list_of_tags_to_upload)
+                    carton_pack_type = get_carton_pack_type(product_details, carton_code)
+                    display_tag_id_gui_queue.put({
+                        'type': DisplayEnums.SHOW_CARTON_TYPE.value,
+                        'data': {
+                            'carton_type': carton_pack_type
+                        }
+                    })
+                except ApiError as err:
+                    read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                    display_tag_id_gui_queue.put({
+                        'type': CommonEnums.API_ERROR.value,
+                        'message': err.message
+                    })
+                except UnknownCartonTypeError as err:
+                    read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                    display_tag_id_gui_queue.put({
+                        'type': CommonEnums.CUSTOM_ERROR.value,
+                        'message': 'There was an error while getting the carton type'
+                    })
 
             if main_queue_value['type'] == DisplayEnums.UPLOAD.value:
                 shipment_id = main_queue_value['data']['shipment_id']

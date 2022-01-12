@@ -41,8 +41,14 @@ class BarcodeScannerReader(Process):
             # self.scanner.read() is a non-blocking call
             barcode = self.scanner.read()
             if barcode:
-                carton_code = self.decode_barcode_into_carton_code(barcode)
-                self.send_value_to_main_process(carton_code, barcode)
+                try:
+                    self.main_queue.put(CommonEnums.API_PROCESSING.value)
+                    carton_code = self.decode_barcode_into_carton_code(barcode)
+                    self.main_queue.put(CommonEnums.API_COMPLETED.value)
+                    self.send_value_to_main_process(carton_code, barcode)
+                except ApiError as err:
+                    self.main_queue.put(CommonEnums.API_COMPLETED.value)
+                    self.send_api_error_to_main_process(err.message)
 
     def send_value_to_main_process(self, carton_code, barcode):
         self.main_queue.put({
@@ -56,13 +62,11 @@ class BarcodeScannerReader(Process):
     def decode_barcode_into_carton_code(self, barcode):
         api_request = MakeApiRequest(f"/fabship/product/rfid/carton/barcode/{barcode}")
         self.main_queue.put(CommonEnums.API_PROCESSING.value)
-        carton_code = None
         try:
             carton_code = api_request.get()
+            return carton_code
         except ApiError as err:
-            self.send_api_error_to_main_process(err.message)
-        self.main_queue.put(CommonEnums.API_COMPLETED.value)
-        return carton_code
+            raise err
 
     def send_api_error_to_main_process(self, message):
         """

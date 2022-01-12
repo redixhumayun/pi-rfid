@@ -32,12 +32,14 @@ class DisplayTagIdGUI(Process):
         self.logger = logging.getLogger('display_tag_id_gui')
         self.shipment_id = generate_shipment_id()
         self.scan_button = None
+        self.get_carton_type_button = None
         self.upload_button = None
 
         #   Define the variables for storing the checkbox value
         self.carton_barcode_checkbox_variable = BooleanVar(False)
         self.tags_checkbox_variable = BooleanVar(False)
         self.weight_checkbox_variable = BooleanVar(False)
+        self.carton_type_checkbox_value = BooleanVar(False)
 
         #   Define the variables for storing the output values
         self.barcode_output = None
@@ -67,6 +69,16 @@ class DisplayTagIdGUI(Process):
         """
         self.logger.log(logging.DEBUG, "The user pressed scan")
         self.main_queue.put(DisplayEnums.SCAN.value)
+
+    def get_carton_type(self):
+        """
+        This method is called to get the carton type
+        """
+        self.logger.log(logging.DEBUG, "The user pressed get carton type")
+        self.main_queue.put({
+            'type': DisplayEnums.GET_CARTON_TYPE.value,
+            'data': None
+        })
 
     def upload(self):
         """
@@ -107,13 +119,25 @@ class DisplayTagIdGUI(Process):
         if carton_barcode_checkbox_variable_value is True:
             self.scan_button['state'] = NORMAL
 
+    def check_if_get_carton_type_button_should_be_activated(self):
+        """
+        This method will check if the get carton type button should be activated based on whether
+        there is a carton barcode value and list of tags provided
+        """
+        carton_barcode_checkbox_variable_value = self.carton_barcode_checkbox_variable.get()
+        tags_checkbox_variable_value = self.tags_checkbox_variable.get()
+
+        if carton_barcode_checkbox_variable_value is True and tags_checkbox_variable_value is True:
+            self.get_carton_type_button['state'] = NORMAL
+
     def check_if_upload_button_should_be_activated(self):
         """This method checks to see if the requisite data is present to activate the upload button"""
         carton_barcode_checkbox_variable_value = self.carton_barcode_checkbox_variable.get()
-        weight_checkbox_variable_value = self.weight_checkbox_variable.get()
         tags_checkbox_variable_value = self.tags_checkbox_variable.get()
+        weight_checkbox_variable_value = self.weight_checkbox_variable.get()
+        carton_type_checkbox_variable_value = self.carton_type_checkbox_variable.get()
 
-        if carton_barcode_checkbox_variable_value is True and weight_checkbox_variable_value is True and tags_checkbox_variable_value is True:
+        if carton_barcode_checkbox_variable_value is True and weight_checkbox_variable_value is True and tags_checkbox_variable_value is True and carton_type_checkbox_variable_value is True:
             self.upload_button['state'] = NORMAL
 
     def reset_data(self):
@@ -122,6 +146,7 @@ class DisplayTagIdGUI(Process):
         self.carton_barcode_checkbox_variable.set(False)
         self.tags_checkbox_variable.set(False)
         self.weight_checkbox_variable.set(False)
+        self.carton_type_checkbox_variable.set(False)
 
         self.barcode_output['text'] = "No result"
         self.weight_output['text'] = "No result"
@@ -129,6 +154,7 @@ class DisplayTagIdGUI(Process):
         self.carton_type_output['text'] = "No result"
 
         self.scan_button['state'] = DISABLED
+        self.get_carton_type_button['state'] = DISABLED
         self.upload_button['state'] = DISABLED
 
     def set_new_shipment_id(self):
@@ -167,27 +193,28 @@ class DisplayTagIdGUI(Process):
                 elif input_value['type'] == DisplayEnums.SHOW_WEIGHT.value:
                     self.weight_output['text'] = input_value['data']['weight']
                     self.weight_checkbox_variable.set(True)
-                elif input_value['type'] == DisplayEnums.SHOW_NUMBER_OF_TAGS_AND_CARTON_TYPE.value:
+                elif input_value['type'] == DisplayEnums.SHOW_NUMBER_OF_TAGS.value:
                     self.rfid_output['text'] = input_value['data']['tags']
                     self.tags_checkbox_variable.set(True)
-
+                elif input_value['type'] == DisplayEnums.SHOW_CARTON_TYPE.value:
                     self.carton_type_output['text'] = input_value['data']['carton_type']
+                    self.carton_type_checkbox_variable.set(True)
                 elif input_value['type'] == CommonEnums.API_ERROR.value:
                     message = input_value['message']
                     self.show_error('Server Error', message)
                     self.reset_data()
-                elif input_value['type'] == DisplayEnums.CUSTOM_ERROR:
+                elif input_value['type'] == DisplayEnums.CUSTOM_ERROR.value:
                     message = input_value['message']
                     self.show_error('Error', message)
                 else:
                     raise Exception('This type is not understood')
 
         self.check_if_scan_button_should_be_activated()
+        self.check_if_get_carton_type_button_should_be_activated()
         self.check_if_upload_button_should_be_activated()
         self.root.after(300, self.run_loop)
 
     def draw_ui(self):
-        # self.root.maxsize(1500, 900)
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
 
@@ -206,6 +233,7 @@ class DisplayTagIdGUI(Process):
         self.carton_barcode_checkbox_variable = BooleanVar(value=False)
         self.tags_checkbox_variable = BooleanVar(value=False)
         self.weight_checkbox_variable = BooleanVar(value=False)
+        self.carton_type_checkbox_variable = BooleanVar(value=False)
 
         #   Create the checkboxes for the left frame
         carton_barcode_checkbox = Checkbutton(left_frame, text="Carton Barcode",
@@ -225,6 +253,12 @@ class DisplayTagIdGUI(Process):
                                         onvalue=1,
                                         offvalue=0,
                                         state=DISABLED)
+
+        carton_type_checkbox = Checkbutton(left_frame, text="Carton Type",
+                                        variable=self.carton_type_checkbox_variable,
+                                        onvalue=1,
+                                        offvalue=0,
+                                        state=DISABLED)
         
         carton_barcode_checkbox.grid(row=0, column=0, sticky=(E, W))
         carton_barcode_checkbox.config(font=("TkDefaultFont", 15))
@@ -235,9 +269,12 @@ class DisplayTagIdGUI(Process):
         weight_checkbox.grid(row=2, column=0, sticky=(E, W))
         weight_checkbox.config(font=("TkDefaultFont", 15))
 
+        carton_type_checkbox.grid(row=3, column=0, sticky=(E,W))
+        carton_type_checkbox.config(font=("TkDefaultFont", 15))
+
         # Create the reset button
         reset_button = Button(left_frame, text="Reset Data", command=self.reset_data)
-        reset_button.grid(row = 3, column = 0, pady=25)
+        reset_button.grid(row = 4, column = 0, pady=25)
 
         #   Create the frame on the right
         right_frame = Frame(self.root, width=650, height=800)
@@ -277,13 +314,17 @@ class DisplayTagIdGUI(Process):
         self.carton_type_output.grid(row=3, column=1)
         self.carton_type_output.config(font=("TkDefaultFont", 15))
 
-        #   Create the buttons for scanning & uploading the data
-        self.scan_button = Button(right_frame, text="Scan", command=self.scan, state=DISABLED)
+        #   Create the buttons for scanning, getting the carton type & uploading the data
+        self.scan_button = Button(right_frame, text="Scan RFID's", command=self.scan, state=DISABLED)
         self.scan_button.grid(row=4, column=0, sticky=(N, S, E, W))
         self.scan_button.config(font=("TkDefaultFont", 15))
 
+        self.get_carton_type_button = Button(right_frame, text="Get Carton Type", command=self.get_carton_type, state=DISABLED)
+        self.get_carton_type_button.grid(row=5, column=0, stick=(N, S, E, W))
+        self.get_carton_type_button.config(font=("TkDefaultFont", 15))
+
         self.upload_button = Button(right_frame, text="Upload", command=self.upload, state=DISABLED)
-        self.upload_button.grid(row=5, column=0, sticky=(N, S, E, W))
+        self.upload_button.grid(row=6, column=0, sticky=(N, S, E, W))
         self.upload_button.config(font=("TkDefaultFont", 15))
 
         self.root.protocol("WM_DELETE_WINDOW", self.close_window)
