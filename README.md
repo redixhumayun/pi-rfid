@@ -41,7 +41,37 @@ To test the pipeline, commit some code to either the development or main branch,
 
 ## Set Up Systemd On The Pi
 
+The Raspberry Pi makes use of systemd (which is the standard service runner on Linux boxes) to daemonize the RFID reader service. You can read more about setting up systemd on a Raspberry Pi here and here. This Medium post provides a sample systemd file which is used to automatically keep restarting a failed process infinitely.
 
+The systemd file for the `pi-rfid` program is here. It needs to be placed in the `/lib/systemd/system/pi-rfid.service` file.
+
+```bash
+[Unit]
+Description=Pi RFID Service that will boot to GUI
+StartLimitIntervalSec=0
+
+[Service]
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env development
+Restart=Always
+RestartSec=1
+KillMode=control-group
+TimeoutSec=infinity
+
+[Install]
+WantedBy=graphical.target
+```
+
+## Set Up udev Rules On The System
+
+Udev rules are user land dev rules which will run based on certain conditions - like plugging in a USB device for instance.
+
+The below line of code is added to the /etc/udev/rules/10-com.rules file which is created to specify user udev rules. This will change the file permissions for the barcode scanner when it is connected. The current model of the barcode scanner that this will work for is RETSOL LS 450 Laser Barcode Scanner
+
+```bash
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="0011", MODE="666", SYMLINK+="usb-barcode-scanner"
+```
 
 ## How To Start The Program
 
