@@ -117,7 +117,7 @@ WantedBy=graphical.target
 
 Udev rules are user land dev rules which will run based on certain conditions - like plugging in a USB device for instance.
 
-The below line of code is added to the `/etc/udev/rules/10-com.rules` file which is created to specify user udev rules. This will change the file permissions for the barcode scanner when it is connected. The current model of the barcode scanner that this will work for is RETSOL LS 450 Laser Barcode Scanner
+The below line of code is added to the `/etc/udev/rules.d/10-com.rules` file which is created to specify user udev rules. This will change the file permissions for the barcode scanner when it is connected. The current model of the barcode scanner that this will work for is RETSOL LS 450 Laser Barcode Scanner
 
 ```bash
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="0011", MODE="666", SYMLINK+="usb-barcode-scanner"
