@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 import serial
 import logging
 from time import sleep
+
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
 class WeighingScale(Process):
