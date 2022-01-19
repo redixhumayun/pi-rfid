@@ -103,7 +103,7 @@ StartLimitIntervalSec=0
 [Service]
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
-ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env development
+ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env production
 Restart=Always
 RestartSec=1
 KillMode=control-group

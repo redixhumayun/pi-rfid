@@ -332,13 +332,14 @@ if __name__ == "__main__":
                 except UnknownCartonTypeError as err:
                     read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
                     display_tag_id_gui_queue.put({
-                        'type': CommonEnums.CUSTOM_ERROR.value,
+                        'type': DisplayEnums.CUSTOM_ERROR.value,
                         'message': 'There was an error while getting the carton type'
                     })
 
             if main_queue_value['type'] == DisplayEnums.UPLOAD.value:
                 shipment_id = main_queue_value['data']['shipment_id']
                 read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                display_tag_id_gui_queue.put(CommonEnums.API_PROCESSING.value)
                 carton_details_api_upload_call_result = upload_carton_details(
                     list_of_tags_to_upload, 
                     carton_weight,
@@ -348,6 +349,7 @@ if __name__ == "__main__":
                     shipment_id
                 )
                 if carton_details_api_upload_call_result is True:
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
                     list_of_tags_to_upload = []
                     carton_weight = 0
@@ -356,9 +358,10 @@ if __name__ == "__main__":
                     carton_pack_type = None
                     shipment_id = ''
                 else:
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                     error_message = carton_details_api_upload_call_result
                     display_tag_id_gui_queue.put({
-                        'type': DisplayEnums.API_ERROR,
+                        'type': DisplayEnums.CUSTOM_ERROR.value,
                         'message': error_message
                     })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
