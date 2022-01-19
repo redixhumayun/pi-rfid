@@ -340,15 +340,15 @@ if __name__ == "__main__":
                 shipment_id = main_queue_value['data']['shipment_id']
                 read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
                 display_tag_id_gui_queue.put(CommonEnums.API_PROCESSING.value)
-                carton_details_api_upload_call_result = upload_carton_details(
-                    list_of_tags_to_upload, 
-                    carton_weight,
-                    carton_code,
-                    carton_barcode, 
-                    carton_pack_type,
-                    shipment_id
-                )
-                if carton_details_api_upload_call_result is True:
+                try:
+                    carton_details_api_upload_call_result = upload_carton_details(
+                        list_of_tags_to_upload, 
+                        carton_weight,
+                        carton_code,
+                        carton_barcode, 
+                        carton_pack_type,
+                        shipment_id
+                    )
                     display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_SUCCESS.value)
                     list_of_tags_to_upload = []
@@ -357,9 +357,16 @@ if __name__ == "__main__":
                     carton_barcode = ''
                     carton_pack_type = None
                     shipment_id = ''
-                else:
+                except FileNotFoundError as err:
                     display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
-                    error_message = carton_details_api_upload_call_result
+                    error_message = 'There was a problem while reading the location'
+                    display_tag_id_gui_queue.put({
+                        'type': DisplayEnums.CUSTOM_ERROR.value,
+                        'message': error_message
+                    })
+                except ApiError as err:
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
+                    error_message = err.message
                     display_tag_id_gui_queue.put({
                         'type': DisplayEnums.CUSTOM_ERROR.value,
                         'message': error_message
