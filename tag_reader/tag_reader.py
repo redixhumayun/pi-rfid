@@ -126,9 +126,9 @@ class TagReader(Process):
             self.logger.log(
                 logging.DEBUG, "Starting the serial ports for RFID reading")
             self.serial_device_1 = serial.Serial(
-                '/dev/ttyUSB0', 57600, timeout=0.5)
+                '/dev/rfid-reader-1', 57600, timeout=0.5)
             self.serial_device_2 = serial.Serial(
-                '/dev/ttyUSB1', 57600, timeout=0.5)
+                '/dev/rfid-reader-2', 57600, timeout=0.5)
         except serial.serialutil.SerialException as err:
             self.logger.log(
                 logging.ERROR, f"There was an error while opening ports for the RFID readers: {err}")
