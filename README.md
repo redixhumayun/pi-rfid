@@ -15,6 +15,7 @@ There are a few things that need to be done before the Pi can be used in an RFID
 
 ## Base OS Image
 
+The base OS image used for all installations can be found in [this GDrive link](https://drive.google.com/file/d/1gxzEfLJJQkubYYjEBph1UnbrfVTQx4nT/view?usp=sharing).
 **Need to fill this section out**
 
 ## Set Up Pi As Managed Instance with AWS SSM
@@ -34,6 +35,8 @@ Install the AWS CLI with the apt package manager for Linux variants. The followi
 Run `aws --version` after running the above command to ensure that the CLI is installed and working.
 
 Create an IAM user for the Pi and run `aws configure` to configure the AWS CLI on the Pi with the credentials of the user just created.
+
+Note: Running `aws configure` and `sudo aws configure` will configure two different sets of users
 
 ## AWS CodeDeploy Registration
 
@@ -60,7 +63,7 @@ Next, run `sudo ./install auto`. Once done, run `sudo service codedeploy-agent s
 
 Once, the CodeDeploy agent has been installed, do the following commands to register the instance as an on-premise server with CodeDeploy.
 
-First, add the following policy to the user for the Pi: `AmazonEC2RoleforAWSCodeDeployLimited`
+First, add the following policy to the user for the Pi: `CodeDeployOnPremiseInstanceRegistrationPolicy`. This is a custom policy that provides the permissions when registering an on-premise instance.
 
 Next, create a file called `codedeploy.onpremises.yml` in `/etc/codedeploy-agent/conf` and enter the following information in it.
 
@@ -103,7 +106,7 @@ StartLimitIntervalSec=0
 [Service]
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
-ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env development
+ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env production
 Restart=Always
 RestartSec=1
 KillMode=control-group
@@ -117,10 +120,22 @@ WantedBy=graphical.target
 
 Udev rules are user land dev rules which will run based on certain conditions - like plugging in a USB device for instance.
 
-The below line of code is added to the `/etc/udev/rules.d/10-com.rules` file which is created to specify user udev rules. This will change the file permissions for the barcode scanner when it is connected. The current model of the barcode scanner that this will work for is RETSOL LS 450 Laser Barcode Scanner
+The below lines of code are added to the `/etc/udev/rules.d/10-com.rules` file which is created to specify user udev rules.
 
 ```bash
+# This rule is meant for the USB barcode scanner
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="0011", MODE="666", SYMLINK+="usb-barcode-scanner"
+
+# This group of rules is meant for ttyUSB devices which are plugged into different physical ports
+KERNEL=="ttyUSB*", KERNELS=="1-1.3:1.0", SYMLINK+="rfid-reader-1"
+KERNEL=="ttyUSB*", KERNELS=="1-1.1:1.0", SYMLINK+="rfid-reader-2"
+KERNEL=="ttyUSB*", KERNELS=="1-1.2:1.0", SYMLINK+="weighing-scale"
+
+# This group of rules is a test meant only to see if inserting a usb drive into different
+# physical ports will create a different symlink
+KERNEL=="sd*", KERNELS=="1-1.3:1.0", SYMLINK+="usb-stick-3"
+KERNEL=="sd*", KERNELS=="1-1.1:1.0", SYMLINK+="usb-stick-1"
+KERNEL=="sd*", KERNELS=="1-1.2:1.0", SYMLINK+="usb-stick-2"
 ```
 
 ## How To Start The Program
