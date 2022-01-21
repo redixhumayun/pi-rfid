@@ -15,6 +15,7 @@ There are a few things that need to be done before the Pi can be used in an RFID
 
 ## Base OS Image
 
+The base OS image used for all installations can be found in [this GDrive link](https://drive.google.com/file/d/1gxzEfLJJQkubYYjEBph1UnbrfVTQx4nT/view?usp=sharing).
 **Need to fill this section out**
 
 ## Set Up Pi As Managed Instance with AWS SSM
@@ -34,6 +35,8 @@ Install the AWS CLI with the apt package manager for Linux variants. The followi
 Run `aws --version` after running the above command to ensure that the CLI is installed and working.
 
 Create an IAM user for the Pi and run `aws configure` to configure the AWS CLI on the Pi with the credentials of the user just created.
+
+Note: Running `aws configure` and `sudo aws configure` will configure two different sets of users
 
 ## AWS CodeDeploy Registration
 
@@ -60,7 +63,7 @@ Next, run `sudo ./install auto`. Once done, run `sudo service codedeploy-agent s
 
 Once, the CodeDeploy agent has been installed, do the following commands to register the instance as an on-premise server with CodeDeploy.
 
-First, add the following policy to the user for the Pi: `AmazonEC2RoleforAWSCodeDeployLimited`
+First, add the following policy to the user for the Pi: `CodeDeployOnPremiseInstanceRegistrationPolicy`. This is a custom policy that provides the permissions when registering an on-premise instance.
 
 Next, create a file called `codedeploy.onpremises.yml` in `/etc/codedeploy-agent/conf` and enter the following information in it.
 
