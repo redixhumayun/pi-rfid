@@ -17,7 +17,7 @@ class WeighingScale(Process):
     def read_weight(self):
         try:
             self.serial_device_1 = serial.Serial(
-                '/dev/ttyUSB2', 9600, timeout=0.5)
+                '/dev/weighing-scale', 9600, timeout=0.5)
         except serial.serialutil.SerialException as err:
             self.logger.log(
                 logging.ERROR, f"There was an error while opening the port to read from the weighing scale: {err}")
