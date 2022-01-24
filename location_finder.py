@@ -26,9 +26,16 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
   # When launching with hardware devices, use this loop
   if environment == EnvironmentVariable.PRODUCTION.value:
     logger.log(logging.DEBUG, "Running the location finder function in production mode")
-    serial_device = serial.Serial('/dev/ttyS0', 9600, timeout=1)
+    try:
+      serial_device = serial.Serial('/dev/ttyS0', 9600, timeout=1)
+    except serial.serialutil.SerialException as err:
+      logger.log(logging.ERROR, 'There was a problem reading opening the GPS device')
+      raise err
     while time.time() < time_end:
-      x = serial_device.readline()
+      try:
+        x = serial_device.readline()
+      except serial.serialutil.SerialException as err:
+        pass
       try:
         y = x[:-2].decode('utf-8')
         if y.find("RMC") > 0:
@@ -37,6 +44,8 @@ def get_latitude_and_longitude(gps_child_queue: Queue, environment: str):
           longitude = message.longitude
           logger.log(logging.DEBUG, f"Got location details as: latitude -> {latitude}, longitude -> {longitude}")
       except UnicodeDecodeError:
+        pass
+      except pynmea2.nmea.ParseError:
         pass
 
     gps_child_queue.put({ 'latitude': latitude, 'longitude': longitude })
