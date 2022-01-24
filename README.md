@@ -101,13 +101,15 @@ The systemd file for the `pi-rfid` program is here. It needs to be placed in the
 ```bash
 [Unit]
 Description=Pi RFID Service that will boot to GUI
+Wants=network-online.target
+After=network.target
 StartLimitIntervalSec=0
 
 [Service]
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
-ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env production
-Restart=Always
+ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env development
+Restart=always
 RestartSec=1
 KillMode=control-group
 TimeoutSec=infinity
