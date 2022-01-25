@@ -373,6 +373,13 @@ if __name__ == "__main__":
                     })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
+    logging_listener.join()
+    
+    #   Wait for all processes to exit
     for process in processes:
-        logging_listener.join()
         process.join()
+
+    #   Close and exit all the queues
+    for queue in queues:
+        queue.close()
+        queue.join_thread()
