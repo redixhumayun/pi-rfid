@@ -5,6 +5,7 @@ import serial
 import pynmea2
 import logging
 import sys
+from exceptions import ApiError
 
 from make_api_request import MakeApiRequest
 from environment_variable import EnvironmentVariable
@@ -67,7 +68,7 @@ def get_location(location_object):
         'latitude': location_object['latitude'], 'longitude': location_object['longitude']}
     response = api_request.get(payload)
     return response
-  except Exception as err:
+  except ApiError as err:
     print("Sorry, there was an error while fetching the location. Please try again")
-    print(err)
-    sys.exit(1)
+    print(err.message)
+    raise err
