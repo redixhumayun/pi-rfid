@@ -5,18 +5,24 @@ This document will serve as a setup guide when setting up a new RFID system usin
 There are a few things that need to be done before the Pi can be used in an RFID system:
 
 1. Load a base OS image on the SD card of the Pi
-2. Set up the Pi as a managed instance with AWS SSM
-3. Install the AWS CLI on the Pi
-4. Register the Pi with CodeDeploy as an on-premise server.
-5. Set up the systemd service to start the program automatically
-6. Set up the udev service to register the barcode scanner as soon as it is plugged in
-7. Ensure that the development or production pipeline works well with the Pi
-8. Test the integration of the physical infrastructure with the Pi
+2. Activate the serial interface on the Pi
+3. Set up the Pi as a managed instance with AWS SSM
+4. Install the AWS CLI on the Pi
+5. Register the Pi with CodeDeploy as an on-premise server.
+6. Set up the systemd service to start the program automatically
+7. Set up the udev service to register the barcode scanner as soon as it is plugged in
+8. Ensure that the development or production pipeline works well with the Pi
+9. Test the integration of the physical infrastructure with the Pi
 
 ## Base OS Image
 
 The base OS image used for all installations can be found in [this GDrive link](https://drive.google.com/file/d/1gxzEfLJJQkubYYjEBph1UnbrfVTQx4nT/view?usp=sharing).
-**Need to fill this section out**
+
+## Activate The Serial Interface
+
+Type in `sudo raspi-config` and go to the interface options. Then select Serial Interface. You will be asked if you want to enable the serial console via shell. Select no for this. You will then be asked if you want to enable the serial hardware port. Select yes for this.
+
+When you select finish, you will be asked to restart the Pi. Restart the Pi at this time.
 
 ## Set Up Pi As Managed Instance with AWS SSM
 
