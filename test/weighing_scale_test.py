@@ -23,6 +23,8 @@ def run_test():
                 pass
     except KeyboardInterrupt:
         print("Received keyboard interrupt in weighing scale test. Closing the port and exiting the program")
+        serial_device.flush()
+        serial_device.reset_input_buffer()
         serial_device.close()
 
 if __name__ == "__main__":
