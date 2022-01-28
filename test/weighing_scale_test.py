@@ -12,7 +12,7 @@ def run_test():
     try:
         serial_device.reset_input_buffer()
         while True:
-            weight_in_bytes = serial_device.read()
+            weight_in_bytes = serial_device.readline()
             weight_as_string = weight_in_bytes.decode('ascii')
             print(f"Reading the weight as string as: {weight_as_string}")
             try:
