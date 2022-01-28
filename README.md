@@ -20,9 +20,13 @@ The base OS image used for all installations can be found in [this GDrive link](
 
 ## Activate The Serial Interface
 
-Type in `sudo raspi-config` and go to the interface options. Then select Serial Interface. You will be asked if you want to enable the serial console via shell. Select no for this. You will then be asked if you want to enable the serial hardware port. Select yes for this.
+Type in `sudo raspi-config` and go to the interface options. Then select Serial Port. 
 
-When you select finish, you will be asked to restart the Pi. Restart the Pi at this time.
+You will be asked if you would like a login shell to be accessible over serial. Select No for this.
+
+Next, you will be asked if you want the serial hardware port to be enabled. Select yes for this.
+
+When you select finish, you will be asked to reboot the Pi. Reboot the Pi at this time so that the changes take effect.
 
 ## Set Up Pi As Managed Instance with AWS SSM
 
@@ -85,7 +89,7 @@ Finally, run the following command to register the instance:
 
 `aws deploy register-on-premises-instance --instance-name RaspberryPi-RFID-ID11 --iam-user-arn arn:aws:iam::your-user-id --region your-region`
 
-Tag the instance with the following tags: `location` and `environment`. Environment should be set to production or staging.
+Tag the instance with the following tags: `location` and `environment` on the console. Environment should be set to production or staging.
 
 [This document](https://docs.aws.amazon.com/codedeploy/latest/userguide/register-on-premises-instance-iam-user-arn.html#register-on-premises-instance-iam-user-arn-1) contains a more detailed explanation.
 
@@ -124,6 +128,8 @@ TimeoutSec=infinity
 WantedBy=graphical.target
 ```
 
+To have this unit file take effect, type in `sudo systemctl daemon-reload`
+
 ## Set Up udev Rules On The System
 
 Udev rules are user land dev rules which will run based on certain conditions - like plugging in a USB device for instance.
@@ -145,6 +151,8 @@ KERNEL=="sd*", KERNELS=="1-1.3:1.0", SYMLINK+="usb-stick-3"
 KERNEL=="sd*", KERNELS=="1-1.1:1.0", SYMLINK+="usb-stick-1"
 KERNEL=="sd*", KERNELS=="1-1.2:1.0", SYMLINK+="usb-stick-2"
 ```
+
+To have this rules file take effect, type in `sudo udevadm trigger`
 
 ## How To Start The Program
 

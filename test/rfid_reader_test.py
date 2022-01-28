@@ -29,7 +29,7 @@ def run_test():
             print(f"Value from device 1: {int_value_from_device_1}")
             print(f"Value from device 2: {int_value_from_device_2}")
     except KeyboardInterrupt:
-        print("Received keyboard interrupt. Closing the ports and exiting the program")
+        print("Received keyboard interrupt in the RFID reader test program. Closing the ports and exiting the program")
         serial_device_1.flush()
         serial_device_1.reset_input_buffer()
         serial_device_1.close()
