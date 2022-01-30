@@ -32,8 +32,6 @@ When you select finish, you will be asked to reboot the Pi. Reboot the Pi at thi
 
 The AWS Systems Manager allows remote management of the Pi. Documentation on how to set that up can be found [here](https://aws.amazon.com/blogs/mt/manage-raspberry-pi-devices-using-aws-systems-manager/).
 
-It involves creating a separate user for each device in the IAM console. The naming scheme while registering the Pi with AWS is: RaspberryPi-RFID-<location>. For example, RaspberryPi-RFID-ID1 and RaspberryPi-RFID-ID4.
-
 Create a separate activation ID and code for each instance so that each instance has a separate name as mentioned in the previous paragraph.
 
 ## Install AWS CLI On The Pi
@@ -118,7 +116,7 @@ StartLimitIntervalSec=0
 [Service]
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/pi/.Xauthority
-ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env development
+ExecStart=/home/pi/pi-rfid/pi-rfid-virtual-env/bin/python3 /home/pi/pi-rfid/RFID_Upload_V0.2.py --env production
 Restart=always
 RestartSec=1
 KillMode=control-group
