@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from os import path
+import sys
 from multiprocessing import Process, Queue
 import argparse
 import logging
@@ -64,7 +65,6 @@ def listener_process(queue, configurer):
 
 # This is the configurer process which configures the handlers
 
-
 def worker_configurer(queue):
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -79,6 +79,18 @@ def worker_configurer(queue):
 
         root.addHandler(queue_handler)
         root.addHandler(console_handler)
+
+def close_queues(queues_to_close):
+    for queue in queues_to_close:
+        queue.putnowait(None)
+        queue.close()
+        queue.join_thread()
+
+def close_processes(processes_to_close):
+    for process in processes_to_close:
+        process.terminate()
+        process.join()
+        
 
 
 if __name__ == "__main__":
@@ -105,7 +117,12 @@ if __name__ == "__main__":
       secrets = get_secret(environment)
     except Exception as e:
       raise e
-    write_secrets_to_env_file(secrets=secrets)
+    
+    try:
+        write_secrets_to_env_file(secrets=secrets)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
 
     # This variable will determine whether the location should be checked or not
     should_check_location = False
@@ -147,6 +164,8 @@ if __name__ == "__main__":
         select_location_gui_process = SelectLocationGUI(
             select_location_gui_queue, main_queue)
 
+        queues.append(gps_queue)
+
         processes.append(gps_process)
         processes.append(select_location_gui_process)
 
@@ -165,11 +184,12 @@ if __name__ == "__main__":
             if main_queue_value == "LOCATION_PICKED":
                 has_location_been_picked = True
 
-        # Allow the processes to stop
-        for process in processes:
-            process.join()
+        # Close the queues and clear the list
+        close_queues(queues)
+        queues.clear()                
 
-        # Clear the process list
+        # Stop processes and clear the list
+        close_processes(processes)
         processes.clear()
 
     # Create a queue and process for logging purposes
@@ -257,8 +277,8 @@ if __name__ == "__main__":
             display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
-            for queue in queues:
-                queue.put_nowait(None)
+            close_queues(queues)
+            close_processes(processes)
             break
 
         elif isinstance(main_queue_value, dict):        
@@ -311,7 +331,7 @@ if __name__ == "__main__":
                     'message': error_message
                 })
             
-            if main_queue_value['type'] == BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR:
+            if main_queue_value['type'] == BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR.value:
                 error_message = main_queue_value['message']
                 display_tag_id_gui_queue.put({
                     'type': DisplayEnums.CUSTOM_ERROR.value,
@@ -320,6 +340,7 @@ if __name__ == "__main__":
             
             if main_queue_value['type'] == DisplayEnums.GET_CARTON_TYPE.value:
                 try:
+                    display_tag_id_gui_queue.put(CommonEnums.API_PROCESSING.value)
                     product_details = decode_epc_tags_into_product_details(list_of_tags_to_upload)
                     carton_pack_type = get_carton_pack_type(product_details, carton_code)
                     display_tag_id_gui_queue.put({
@@ -328,14 +349,17 @@ if __name__ == "__main__":
                             'carton_type': carton_pack_type
                         }
                     })
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                 except ApiError as err:
                     read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                     display_tag_id_gui_queue.put({
                         'type': CommonEnums.API_ERROR.value,
                         'message': err.message
                     })
                 except UnknownCartonTypeError as err:
                     read_tags_queue.put(TagReaderEnums.CLEAR_TAG_DATA.value)
+                    display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
                     display_tag_id_gui_queue.put({
                         'type': DisplayEnums.CUSTOM_ERROR.value,
                         'message': 'There was an error while getting the carton type'
@@ -380,12 +404,9 @@ if __name__ == "__main__":
 
     logging_queue.put_nowait(None)
     logging_listener_process.join()
-    
-    #   Wait for all processes to exit
-    for process in processes:
-        process.join()
 
-    #   Close and exit all the queues
-    for queue in queues:
-        queue.close()
-        queue.join_thread()
+    # Close the queues
+    close_queues(queues)
+
+    # Close the processes
+    close_processes(processes)
