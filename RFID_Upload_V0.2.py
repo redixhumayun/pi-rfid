@@ -31,9 +31,14 @@ from exceptions import ApiError, UnknownCartonTypeError
 
 
 def listener_configurer():
+    try:
+        with open(filename, 'r') as f:
+            system_location = f.readline()
+    except FileNotFoundError:
+        print("The location.txt file was not found. Cannot start logging")
     root = logging.getLogger()
     watchtower_handler = watchtower.CloudWatchLogHandler(
-        log_group='ID1-watchtower')
+        log_group=f"{system_location}-rfid-logs")
     formatter = logging.Formatter(
         '%(asctime)s %(name)s %(levelname)-8s %(message)s')
     watchtower_handler.setFormatter(formatter)
@@ -126,20 +131,6 @@ if __name__ == "__main__":
     # Create the main queue that will be used for parent child communication
     main_queue = Queue()
 
-    # Create a queue and process for logging purposes
-    logging_queue = Queue(-1)
-    logging_listener = Process(target=listener_process, args=(
-        logging_queue, listener_configurer))
-    queues.append(logging_queue)
-
-    # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
-    # later works, but it does. If you add this process to a list and start it later in a for loop
-    # it will cause the same line to log thousands of times
-    logging_listener.start()
-
-    # Start the worker process that will implement all required handlers
-    worker_configurer(logging_queue)
-
     # Start GPS process and allow user to select location only if
     # location has not already been set
     if should_check_location is True:
@@ -181,6 +172,20 @@ if __name__ == "__main__":
         # Clear the process list
         processes.clear()
 
+    # Create a queue and process for logging purposes
+    logging_queue = Queue(-1)
+    logging_listener_process = Process(target=listener_process, args=(
+        logging_queue, listener_configurer))
+    queues.append(logging_queue)
+
+    # NOTE: I have no idea why doing a start here versus adding this process to a list and starting
+    # later works, but it does. If you add this process to a list and start it later in a for loop
+    # it will cause the same line to log thousands of times
+    logging_listener_process.start()
+
+    # Start the worker process that will implement all required handlers
+    worker_configurer(logging_queue)
+
     # Create the GUI and associated queue to allow the user to view the scanned tags
     display_tag_id_gui_queue = Queue()
     display_tag_id_gui_process = DisplayTagIdGUI(
@@ -207,17 +212,17 @@ if __name__ == "__main__":
         queues.append(barcode_scanner_queue)       
     elif environment == EnvironmentVariable.DEVELOPMENT.value:
         read_tags_queue = Queue()
-        read_tags_process = TagReader(read_tags_queue, main_queue)
+        read_tags_process = RandomNumberGenerator(read_tags_queue, main_queue)
         processes.append(read_tags_process)
         queues.append(read_tags_queue)
 
         weighing_queue = Queue()
-        weighing_process = WeighingScale(weighing_queue, main_queue)
+        weighing_process = WeighingScaleTest(weighing_queue, main_queue)
         processes.append(weighing_process)
         queues.append(weighing_queue)
 
         barcode_scanner_queue = Queue()
-        barcode_scanner_process = BarcodeScannerReader(barcode_scanner_queue, main_queue)
+        barcode_scanner_process = BarcodeScannerReaderTest(barcode_scanner_queue, main_queue)
         processes.append(barcode_scanner_process)
         queues.append(barcode_scanner_queue)
     else:
@@ -373,7 +378,8 @@ if __name__ == "__main__":
                     })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
-    logging_listener.join()
+    logging_queue.put_nowait(None)
+    logging_listener_process.join()
     
     #   Wait for all processes to exit
     for process in processes:

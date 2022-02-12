@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue
 import serial
 import logging
-from time import sleep
+from time import sleep, time
 
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
@@ -31,8 +31,11 @@ class WeighingScale(Process):
                 if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:
                     #   Reset the input buffer so stale values are not read
                     self.serial_device_1.reset_input_buffer()
+                    start_time = time()
                     is_weight_read = False
-                    while is_weight_read is False:
+
+                    #   Keep reading for 3 seconds and until a valid weight is read
+                    while is_weight_read is False and time() - start_time < 3:
                         weight_in_bytes = self.serial_device_1.readline()
                         weight_as_string = weight_in_bytes.decode('ascii')
                         try:
