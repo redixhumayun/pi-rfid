@@ -112,10 +112,14 @@ if __name__ == "__main__":
     environment = parser.parse_args().environment
 
     # Get the secrets from AWS and write them to a file
-    try:
-      secrets = get_secret(environment)
-    except Exception as e:
-      raise e
+    secrets = None
+    while secrets is None:
+        try:
+            print('Trying to get secrets')
+            secrets = get_secret(environment)
+            print(secrets)
+        except Exception as e:
+            raise e
     
     try:
         write_secrets_to_env_file(secrets=secrets)
@@ -276,8 +280,7 @@ if __name__ == "__main__":
             display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
-            close_queues(queues)
-            close_processes(processes)
+            print('The user pressed quit')
             break
 
         elif isinstance(main_queue_value, dict):        
@@ -401,7 +404,6 @@ if __name__ == "__main__":
                     })
                     display_tag_id_gui_queue.put(DisplayEnums.UPLOAD_FAIL.value)
 
-    logging_queue.put_nowait(None)
     logging_listener_process.join()
 
     # Close the queues
