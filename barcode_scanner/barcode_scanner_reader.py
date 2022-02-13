@@ -25,7 +25,7 @@ class BarcodeScannerReader(Process):
             self.logger.log(logging.ERROR, f"There was an error while opening the barcode scanner reader: {err}")
             message = 'Unable to open barcode scanner reader'
             self.main_queue.put({
-                'type': BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR,
+                'type': BarcodeScannerEnums.BARCODE_SCANNER_PERMISSION_ERROR.value,
                 'message': message
                 })
 
