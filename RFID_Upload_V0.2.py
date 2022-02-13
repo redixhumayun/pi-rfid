@@ -82,13 +82,12 @@ def worker_configurer(queue):
 
 def close_queues(queues_to_close):
     for queue in queues_to_close:
-        queue.putnowait(None)
+        queue.put_nowait(None)
         queue.close()
         queue.join_thread()
 
 def close_processes(processes_to_close):
     for process in processes_to_close:
-        process.terminate()
         process.join()
         
 
