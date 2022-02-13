@@ -280,7 +280,8 @@ if __name__ == "__main__":
             display_tag_id_gui_queue.put(CommonEnums.API_COMPLETED.value)
 
         elif main_queue_value == DisplayEnums.QUIT.value:
-            print('The user pressed quit')
+            for queue in queues:
+                queue.put_nowait(None)
             break
 
         elif isinstance(main_queue_value, dict):        
