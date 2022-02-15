@@ -35,7 +35,7 @@ class WeighingScale(Process):
                     is_weight_read = False
 
                     #   Keep reading for 3 seconds and until a valid weight is read
-                    while is_weight_read is False and time() - start_time < 3:
+                    while is_weight_read is False:
                         weight_in_bytes = self.serial_device_1.readline()
                         weight_as_string = weight_in_bytes.decode('ascii')
                         try:
@@ -44,7 +44,7 @@ class WeighingScale(Process):
                             # Not reading this data because scale is calibrating
                             pass
 
-                        if self.weight > 0:
+                        if self.weight > 0 and time() - start_time > 2:
                             is_weight_read = True
                             self.main_queue.put({
                                 'type': WeighingScaleEnums.WEIGHT_VALUE_READ.value,
