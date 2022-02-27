@@ -1,32 +1,22 @@
 #!/usr/bin/python3
-from email import message
-import enum
-from os import environ, path
-from re import L
+from os import path
 import sys
 from multiprocessing import Process, Queue
 import argparse
 import logging
 import logging.handlers
-from this import d
-from message import Message
 import watchtower
+from message import Message
 
 from get_aws_secrets import get_secret, write_secrets_to_env_file
-from location_finder import get_latitude_and_longitude, get_location
-from environment_variable import EnvironmentVariable
-from select_location_gui import SelectLocationGUI
 from display.display_tag_id_gui import DisplayTagIdGUI
 from tag_reader.tag_reader import TagReader
 from tag_reader.tag_reader_enums import TagReaderEnums
-from tag_reader.random_number_generator import RandomNumberGenerator
 from weighing_scale.weighing_scale import WeighingScale
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
-from weighing_scale.weighing_scale_test import WeighingScaleTest
 from barcode_scanner.barcode_scanner_enums import BarcodeScannerEnums
 from display.display_enums import DisplayEnums
 from barcode_scanner.barcode_scanner_reader import BarcodeScannerReader
-from barcode_scanner.barcode_scanner_reader_test import BarcodeScannerReaderTest
 from upload_carton_details import upload_carton_details
 from decode_carton_type import decode_epc_tags_into_product_details, get_carton_pack_type
 from common_enums import CommonEnums
