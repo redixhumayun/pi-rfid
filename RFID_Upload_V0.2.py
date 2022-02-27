@@ -121,11 +121,6 @@ def retrieve_secrets_and_write_to_file(environment):
     except WriteToFileError as error:
         sys.exit(f'There was an error while writing the secrets to an env file: {error}')
 
-def reset_global_variable_values():
-    pass
-
-
-
 class GlobalVariablesStruct:
     """This class is meant to hold all global variables"""
     def __init__(self):
