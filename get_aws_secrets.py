@@ -7,9 +7,10 @@ import base64
 from botocore.exceptions import ClientError
 import json
 from environment_variable import EnvironmentVariable
+from exceptions import WriteToFileError
 
 def get_secret(environment):
-
+    """This method will get the secrets from AWS using the Botocore module"""
     #   Load the secrets based on environment
     if environment == EnvironmentVariable.DEVELOPMENT.value:
         secret_name = "pi-rfid/env-variables-test"
@@ -32,35 +33,35 @@ def get_secret(environment):
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'UnrecognizedClientException':
+    except ClientError as client_error:
+        if client_error.response['Error']['Code'] == 'UnrecognizedClientException':
             # The client is not recognized with AWS, probably because this
             # client is not registered
-            raise e
-        if e.response['Error']['Code'] == 'AccessDeniedException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'AccessDeniedException':
             # The user running on this Pi does not have access to the Systems Manager
             # service on AWS. Please add the required permissions to this user
-            raise e
-        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'DecryptionFailureException':
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
             # Deal with the exception here, and/or rethrow at your discretion.
-            raise e
-        if e.response['Error']['Code'] == 'InternalServiceErrorException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'InternalServiceErrorException':
             # An error occurred on the server side.
             # Deal with the exception here, and/or rethrow at your discretion.
-            raise e
-        if e.response['Error']['Code'] == 'InvalidParameterException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'InvalidParameterException':
             # You provided an invalid value for a parameter.
             # Deal with the exception here, and/or rethrow at your discretion.
-            raise e
-        if e.response['Error']['Code'] == 'InvalidRequestException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'InvalidRequestException':
             # You provided a parameter value that is not valid for the current state of the resource.
             # Deal with the exception here, and/or rethrow at your discretion.
-            raise e
-        if e.response['Error']['Code'] == 'ResourceNotFoundException':
+            raise client_error
+        if client_error.response['Error']['Code'] == 'ResourceNotFoundException':
             # We can't find the resource that you asked for.
             # Deal with the exception here, and/or rethrow at your discretion.
-            raise e
+            raise client_error
     else:
         # Decrypts secret using the associated KMS CMK.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
@@ -70,16 +71,18 @@ def get_secret(environment):
             return parsed_secret_values
         else:
             decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            return decoded_binary_secret
             
     # Your code goes here.
 
 def write_secrets_to_env_file(secrets: dict):
+    """This method is to write the env secrets to a local file"""
     try:
-        with open('.env', 'w') as env_file:
+        with open('.env', 'w', encoding='utf-8') as env_file:
             for key, value in secrets.items():
                 string_to_write = f"{key}={value}\n"   
                 env_file.write(string_to_write)
         print('Done writing the env file successfully')
     except Exception as err:
         print(f"Error while writing the .env file: {err}")
-        raise err
+        raise WriteToFileError from err
