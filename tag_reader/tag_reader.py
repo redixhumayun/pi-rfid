@@ -3,11 +3,9 @@ import logging
 import time
 import serial
 import sys
-from make_api_request import MakeApiRequest
-from carton.decide_carton_type import decide_carton_type, get_carton_perforation
+from message import Message
 from tag_reader.Entities.rfid_tag import RFIDTagEntity
 from tag_reader.tag_reader_enums import TagReaderEnums
-from exceptions import ApiError
 from common_enums import CommonEnums
 
 
@@ -33,6 +31,10 @@ class TagReader(Process):
       This will be used to store the hex value of a specific RFID tag
     string_of_tags: String
       This will store all the tag values read during a given session
+    start_time: Float
+      This will store the start time variable used to check whether 2 seconds have elapsed before returning tag values to the main process
+    logger: Logger
+      The logger object
     """
 
     def __init__(self, queue: Queue, main_queue: Queue):
@@ -42,11 +44,10 @@ class TagReader(Process):
         self.serial_device_1 = None
         self.serial_device_2 = None
         self.should_send_back_tag_values = False
-        self.tag_hex_list = []  # The hex value of the RFID tag will be stored in this list
+        self.tag_hex_list = []  # The hex value of the RFID tags will be stored in this list
         self.string_of_tags = ""
         self.start_time = 0
         self.logger = logging.getLogger('tag_reader')
-        self.carton_barcode = None
 
     def send_tag_details_to_main_process(self):
         """
@@ -74,30 +75,6 @@ class TagReader(Process):
             'type': CommonEnums.API_ERROR.value,
             'message': message
             })
-
-    def decode_epc_tags_into_product_details(self):
-        """
-        This method is called to convert the EPC into product details via API request
-        """
-        api_request = MakeApiRequest('/fabship/product/rfid')
-        decoded_product_details = None
-        self.main_queue.put(CommonEnums.API_PROCESSING.value)
-        try:
-            decoded_product_details = api_request.get_request_with_body(
-                {'epc': self.tag_hex_list})
-        except ApiError as err:
-            self.queue.put_nowait(TagReaderEnums.CLEAR_TAG_DATA.value)
-            self.send_api_error_to_main_process(err.message)
-        self.main_queue.put(CommonEnums.API_COMPLETED.value)
-
-        carton_perforation = get_carton_perforation(self.carton_barcode)
-        carton_type = None
-        try:
-            carton_type = decide_carton_type(
-                decoded_product_details, carton_perforation)
-        except Exception as e:
-            self.logger.log(logging.ERROR, f"There was an error while deciding the carton type")
-        return carton_type
 
     def read_tag_data(self, tag_bytes_list):
         """This method is called to convert EPC bytes to hex values and add them to the list if valid"""
@@ -146,8 +123,17 @@ class TagReader(Process):
             # Check if the queue has any elements in it
             # Do this because queue.get() is a blocking call
             if self.queue.qsize() > 0:
-                input_queue_string = self.queue.get()
-                if input_queue_string == TagReaderEnums.START_READING_TAGS.value:
+                queue_value: Message | None = self.queue.get()
+                enum_type = queue_value.type
+                queue_data = queue_value.data
+                queue_error_message = queue_value.message
+
+                if queue_value is None:
+                    self.logger.log(
+                        logging.DEBUG, "Exiting the tag_reader process")
+                    should_exit_loop = True
+
+                if enum_type == TagReaderEnums.START_READING_TAGS.value:
                     # When the user clicks the scan button, clear the buffer
                     # clear the bytes list and also clear previously stored EPC's
                     self.logger.log(
@@ -159,7 +145,8 @@ class TagReader(Process):
                     self.tag_hex_list.clear()
                     self.should_send_back_tag_values = True
                     self.start_time = time.time()
-                elif input_queue_string == TagReaderEnums.CLEAR_TAG_DATA.value:
+
+                elif enum_type == TagReaderEnums.CLEAR_TAG_DATA.value:
                     self.logger.log(
                         logging.DEBUG, "Clearing the bytes list for tags")
                     tag_bytes_list_for_device_1.clear()
@@ -169,17 +156,7 @@ class TagReader(Process):
                     self.tag_hex_list.clear()
                     self.should_send_back_tag_values = False
                     self.start_time = time.time()
-                    self.carton_barcode = None
                     self.carton_type = None
-                elif isinstance(input_queue_string, dict):
-                    if input_queue_string['type'] == TagReaderEnums.RECEIVED_CARTON_BARCODE_VALUE.value:
-                        self.logger.log(
-                            logging.DEBUG, "Received the carton barcode value")
-                        self.carton_barcode = input_queue_string['data']['carton_code']
-                elif input_queue_string is None:
-                    self.logger.log(
-                        logging.DEBUG, "Exiting the tag_reader process")
-                    should_exit_loop = True
 
             read_bytes_from_device_1 = self.serial_device_1.read()
             int_value_from_device_1 = int.from_bytes(
@@ -225,8 +202,6 @@ class TagReader(Process):
             #   2. The tag hex list actually has values
             #   3. The time lapsed has been at least 2 seconds
             if self.should_send_back_tag_values is True and len(self.tag_hex_list) > 0 and time.time() - self.start_time > 2:
-                # if self.carton_type is None:
-                #     self.carton_type = self.decode_epc_tags_into_product_details()
                 self.send_tag_details_to_main_process()
 
         # Once the loop exits, perform clean up and close serial ports
