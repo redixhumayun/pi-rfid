@@ -2,6 +2,7 @@ from multiprocessing import Process, Queue
 import serial
 import logging
 from time import sleep, time
+from message import Message
 
 from weighing_scale.weighing_scale_enums import WeighingScaleEnums
 
@@ -27,8 +28,11 @@ class WeighingScale(Process):
             # 50ms sleep to schedule out the process and reduce CPU usage
             sleep(0.05)
             if self.queue.qsize() > 0:
-                input_queue_string = self.queue.get()
-                if input_queue_string == WeighingScaleEnums.START_WEIGHING.value:
+                queue_value: Message | None = self.queue.get()
+                enum_type = queue_value.type
+                queue_data = queue_value.data
+                queue_error_message = queue_value.message
+                if enum_type == WeighingScaleEnums.START_WEIGHING.value:
                     #   Reset the input buffer so stale values are not read
                     self.serial_device_1.reset_input_buffer()
                     start_time = time()
@@ -46,15 +50,17 @@ class WeighingScale(Process):
 
                         if self.weight > 0 and time() - start_time > 2:
                             is_weight_read = True
-                            self.main_queue.put({
-                                'type': WeighingScaleEnums.WEIGHT_VALUE_READ.value,
-                                'data': {
-                                    'weight': self.weight
-                                }
-                            })
+                            self.main_queue.put(
+                                Message(
+                                    type_value=WeighingScaleEnums.WEIGHT_VALUE_READ.value,
+                                    data={
+                                        'weight': self.weight
+                                    }
+                                )
+                            )
 
                     self.weight = 0
-                elif input_queue_string is None:
+                elif queue_value is None:
                     self.logger.log(
                         logging.DEBUG, "Exiting the weighing process")
                     should_exit_loop = True

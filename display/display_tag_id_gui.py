@@ -1,3 +1,4 @@
+import enum
 from multiprocessing import Process, Queue
 import logging
 import tkinter as tk
@@ -7,6 +8,7 @@ from tkinter.constants import DISABLED, LEFT, RIGHT, TOP
 from display.display_enums import DisplayEnums
 from display.generate_shipment_id import generate_shipment_id
 from common_enums import CommonEnums
+from message import Message
 
 
 class DisplayTagIdGUI(Process):
@@ -68,17 +70,22 @@ class DisplayTagIdGUI(Process):
         This method is called when the scan button is pressed
         """
         self.logger.log(logging.DEBUG, "The user pressed scan")
-        self.main_queue.put(DisplayEnums.SCAN.value)
+        self.main_queue.put(
+            Message(
+                type_value=DisplayEnums.SCAN.value
+            )
+        )
 
     def get_carton_type(self):
         """
         This method is called to get the carton type
         """
         self.logger.log(logging.DEBUG, "The user pressed get carton type")
-        self.main_queue.put({
-            'type': DisplayEnums.GET_CARTON_TYPE.value,
-            'data': None
-        })
+        self.main_queue.put(
+            Message(
+                type_value=DisplayEnums.GET_CARTON_TYPE.value
+            )
+        )
 
     def upload(self):
         """
@@ -89,20 +96,25 @@ class DisplayTagIdGUI(Process):
         if self.carton_barcode_checkbox_variable is False or self.weight_checkbox_variable is False or self.tags_checkbox_variable is False:
             self.logger.log(logging.DEBUG, "The user tried to upload without all the relevant data")
             self.show_error(title="Upload Error", body="All the data is not entered. View checkboxes on the side for more information.")
-        # self.main_queue.put(DisplayEnums.UPLOAD.value)
-        self.main_queue.put({
-            'type': DisplayEnums.UPLOAD.value,
-            'data': {
-                'shipment_id': self.shipment_id
-            }
-        })
+        self.main_queue.put(
+            Message(
+                type_value=DisplayEnums.UPLOAD.value,
+                data={
+                    'shipment_id': self.shipment_id
+                }
+            )
+        )
 
     def close_window(self):
         """
         This method is called when the close button is pressed
         """
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.main_queue.put(DisplayEnums.QUIT.value)
+            self.main_queue.put(
+                Message(
+                    type_value=DisplayEnums.QUIT.value
+                )
+            )
             self.logger.log(logging.DEBUG, "The user pressed quit")
             self.root.destroy()
 
@@ -142,7 +154,11 @@ class DisplayTagIdGUI(Process):
 
     def reset_data(self):
         """This method will reset all data from the UI after an upload is successful"""
-        self.main_queue.put(DisplayEnums.RESET.value)
+        self.main_queue.put(
+            Message(
+                type_value=DisplayEnums.RESET.value
+            )
+        )
         self.carton_barcode_checkbox_variable.set(False)
         self.tags_checkbox_variable.set(False)
         self.weight_checkbox_variable.set(False)
@@ -176,38 +192,42 @@ class DisplayTagIdGUI(Process):
         # Do this because queue.get() is a blocking call
         if self.queue.qsize() > 0:
             input_value = self.queue.get()
-            if input_value == DisplayEnums.UPLOAD_SUCCESS.value:
+            queue_value: Message | None = self.queue.get()
+            enum_type = queue_value.type
+            queue_data = queue_value.data
+            queue_error_message = queue_value.message
+
+            if enum_type == DisplayEnums.UPLOAD_SUCCESS.value:
                 self.show_message("Upload Successful", "Your data was uploaded successfully")
                 self.reset_data()
-            if input_value == DisplayEnums.UPLOAD_FAIL.value:
+            if enum_type == DisplayEnums.UPLOAD_FAIL.value:
                 self.show_error("Upload Error", "There was an error while uploading the carton details")
                 self.reset_data()
-            if input_value == CommonEnums.API_PROCESSING.value:
+            if enum_type == CommonEnums.API_PROCESSING.value:
                 self.show_cursor_busy()
-            if input_value == CommonEnums.API_COMPLETED.value:
+            if enum_type == CommonEnums.API_COMPLETED.value:
                 self.remove_cursor_busy()
-            if isinstance(input_value, dict):
-                if input_value['type'] == DisplayEnums.SHOW_SCANNED_BARCODE.value:
-                    self.barcode_output['text'] = input_value['data']['barcode']
-                    self.carton_barcode_checkbox_variable.set(True)
-                elif input_value['type'] == DisplayEnums.SHOW_WEIGHT.value:
-                    self.weight_output['text'] = input_value['data']['weight']
-                    self.weight_checkbox_variable.set(True)
-                elif input_value['type'] == DisplayEnums.SHOW_NUMBER_OF_TAGS.value:
-                    self.rfid_output['text'] = input_value['data']['tags']
-                    self.tags_checkbox_variable.set(True)
-                elif input_value['type'] == DisplayEnums.SHOW_CARTON_TYPE.value:
-                    self.carton_type_output['text'] = input_value['data']['carton_type']
-                    self.carton_type_checkbox_variable.set(True)
-                elif input_value['type'] == CommonEnums.API_ERROR.value:
-                    message = input_value['message']
-                    self.show_error('Server Error', message)
-                    self.reset_data()
-                elif input_value['type'] == DisplayEnums.CUSTOM_ERROR.value:
-                    message = input_value['message']
-                    self.show_error('Error', message)
-                else:
-                    raise Exception('This type is not understood')
+            if enum_type == DisplayEnums.SHOW_SCANNED_BARCODE.value:
+                self.barcode_output['text'] = input_value['data']['barcode']
+                self.carton_barcode_checkbox_variable.set(True)
+            if enum_type == DisplayEnums.SHOW_WEIGHT.value:
+                self.weight_output['text'] = input_value['data']['weight']
+                self.weight_checkbox_variable.set(True)
+            if enum_type == DisplayEnums.SHOW_NUMBER_OF_TAGS.value:
+                self.rfid_output['text'] = input_value['data']['tags']
+                self.tags_checkbox_variable.set(True)
+            if enum_type == DisplayEnums.SHOW_CARTON_TYPE.value:
+                self.carton_type_output['text'] = input_value['data']['carton_type']
+                self.carton_type_checkbox_variable.set(True)
+            if enum_type == CommonEnums.API_ERROR.value:
+                message = input_value['message']
+                self.show_error('Server Error', message)
+                self.reset_data()
+            if enum_type == DisplayEnums.CUSTOM_ERROR.value:
+                message = input_value['message']
+                self.show_error('Error', message)
+            else:
+                raise Exception('This type is not understood')
 
         self.check_if_scan_button_should_be_activated()
         self.check_if_get_carton_type_button_should_be_activated()
