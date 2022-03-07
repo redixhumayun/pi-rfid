@@ -15,7 +15,7 @@ def upload_carton_details(location, list_of_epc_tags, carton_weight, carton_code
         logger.log(logging.DEBUG, "Making a POST request")
         response = api_request.post(
             {
-                'location': location, #   only while testing against prod 
+                'location': location,
                 'epcs': list_of_epc_tags,
                 'shipmentId': str(shipment_id),
                 'cartonCode': carton_code,
