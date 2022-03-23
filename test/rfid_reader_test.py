@@ -30,13 +30,13 @@ def run_test():
         raise err
 
     try:
+        serial_device_1.reset_input_buffer()
+        serial_device_2.reset_input_buffer()
         while True:
-            serial_device_1.reset_input_buffer()
-            serial_device_2.reset_input_buffer()
-            
             read_bytes_from_device_1 = serial_device_1.read()
             int_value_from_device_1 = int.from_bytes(
                 read_bytes_from_device_1, "big")
+            print(int_value_from_device_1)
             read_bytes_from_device_2 = serial_device_2.read()
             int_value_from_device_2 = int.from_bytes(
                 read_bytes_from_device_2, "big"
