@@ -1,4 +1,4 @@
-
+# Barcode error
 usbPortOpenError = "Unable to open Barcode USB device:"
 permissionError = "There was an error while opening the barcode scanner reader:"
 

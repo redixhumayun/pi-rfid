@@ -1,3 +1,8 @@
+# -----------------------------------------------------------
+# This class provides GUI functionalities
+#
+# Date: 24-Mar-2022
+# -----------------------------------------------------------
 import logging
 import logging.config
 import os.path
@@ -46,9 +51,13 @@ class RFIDUI:
         # Status Labels
         self.ScaleStatusLabel = None
         self.barcodeStatusLabel = None
-        self.AntennaStatusLabel1 = None
-        self.AntennaStatusLabel2 = None
-        self.AntennaStatusLabel3 = None
+        self.AntennaStatusLabelId = {}
+        # self.AntennaStatusLabel2 = None
+        # self.AntennaStatusLabel3 = None
+        # self.AntennaStatusLabel4 = None
+        # self.AntennaStatusLabel5 = None
+        # self.AntennaStatusLabel6 = None
+
         self.ReaderStatusLabel = None
         self.processState = 'Start'
         self.conveyorState = 0
@@ -292,7 +301,6 @@ class RFIDUI:
         self.processState = 'StopRFIDScan'
         self.logger.debug("Stop RFID Tag reading process")
         self.tagEpcCodeDict = self.rfidReader.stopTagProcessing()
-        print(self.tagEpcCodeDict)
         self.ScannedPieceCount.config(text=self.tagReadCount)
         self.StartStopRFIDButton.config(text="Get Carton Type", command=self.getCartonTypeCallback, state="normal")
 
@@ -347,7 +355,8 @@ class RFIDUI:
         self.conveyorState = 1  # In the RFID chamber
 
     # ####################### Device status info #####################
-    # Update Weight status
+
+    # Update Weight serial port status
     def updateWeightStatus(self):
 
         if self.rfidUtility.serialPortIsUsable():
@@ -357,7 +366,7 @@ class RFIDUI:
 
         self.ScaleStatusLabel.after(Constants.RefreshStatusMilliSeconds, self.updateWeightStatus)
 
-    # Update Barcode status
+    # Update Barcode USB status
     def updateBarcodeStatus(self):
 
         if self.rfidUtility.usbPortIsUsable():
@@ -383,21 +392,10 @@ class RFIDUI:
         antennaStatus = self.rfidUtility.getAntennaStatus()
 
         for antennaId, antennaStatus in antennaStatus.items():
-            if antennaId == 1:
-                if antennaStatus:
-                    self.AntennaStatusLabel1.config(background=Constants.green, fg=Constants.black)
-                else:
-                    self.AntennaStatusLabel1.config(background=Constants.red, fg=Constants.white)
-            elif antennaId == 2:
-                if antennaStatus:
-                    self.AntennaStatusLabel2.config(background=Constants.green, fg=Constants.black)
-                else:
-                    self.AntennaStatusLabel2.config(background=Constants.red, fg=Constants.white)
-            elif antennaId == 3:
-                if antennaStatus:
-                    self.AntennaStatusLabel3.config(background=Constants.green, fg=Constants.black)
-                else:
-                    self.AntennaStatusLabel3.config(background=Constants.red, fg=Constants.white)
+            if antennaStatus:
+                self.AntennaStatusLabelId[antennaId].config(background=Constants.green, fg=Constants.black)
+            else:
+                self.AntennaStatusLabelId[antennaId].config(background=Constants.red, fg=Constants.white)
 
         self.ReaderStatusLabel.after(Constants.RefreshStatusMilliSeconds, self.updateAntennaStatus)
 
@@ -414,6 +412,7 @@ class RFIDUI:
                 self.MainWindow.after_cancel(self.rfidCallBackId)
                 self.rfidCallBackId = None
 
+    # Main method
     def mainMethod(self):
 
         # Window setup
@@ -485,25 +484,32 @@ class RFIDUI:
 
         # ################################# Status Frame ################################
 
-        Label(StatusFrame, text='Reader', font=self.medium1_font, bg=Constants.white).place(x=50, y=740)
+        Label(StatusFrame, text='Reader', font=self.medium1_font, bg=Constants.white).place(x=10, y=740)
         self.ReaderStatusLabel = Label(StatusFrame, width=5, bg=Constants.red)
-        self.ReaderStatusLabel.place(x=165, y=750)
+        self.ReaderStatusLabel.place(x=120, y=750)
 
-        Label(StatusFrame, text='Antenna', font=self.medium1_font, bg=Constants.white).place(x=245, y=740)
-        self.AntennaStatusLabel1 = Label(StatusFrame, text='1', width=5, bg=Constants.red, fg=Constants.white)
-        self.AntennaStatusLabel1.place(x=375, y=750)
-        self.AntennaStatusLabel2 = Label(StatusFrame, text='2', width=5, bg=Constants.red, fg=Constants.white)
-        self.AntennaStatusLabel2.place(x=425, y=750)
-        self.AntennaStatusLabel3 = Label(StatusFrame, text='3', width=5, bg=Constants.red, fg=Constants.white)
-        self.AntennaStatusLabel3.place(x=475, y=750)
+        Label(StatusFrame, text='Antenna', font=self.medium1_font, bg=Constants.white).place(x=200, y=740)
+        self.AntennaStatusLabelId[1] = Label(StatusFrame, text='1', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[1].place(x=325, y=750)
+        self.AntennaStatusLabelId[2] = Label(StatusFrame, text='2', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[2].place(x=375, y=750)
+        self.AntennaStatusLabelId[3] = Label(StatusFrame, text='3', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[3].place(x=425, y=750)
 
-        Label(StatusFrame, text='Barcode', font=self.medium1_font, bg=Constants.white).place(x=560, y=740)
+        self.AntennaStatusLabelId[4] = Label(StatusFrame, text='4', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[4].place(x=475, y=750)
+        self.AntennaStatusLabelId[5] = Label(StatusFrame, text='5', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[5].place(x=525, y=750)
+        self.AntennaStatusLabelId[6] = Label(StatusFrame, text='6', width=5, bg=Constants.red, fg=Constants.white)
+        self.AntennaStatusLabelId[6].place(x=575, y=750)
+
+        Label(StatusFrame, text='Barcode', font=self.medium1_font, bg=Constants.white).place(x=665, y=740)
         self.barcodeStatusLabel = Label(StatusFrame, width=5, bg=Constants.red)
-        self.barcodeStatusLabel.place(x=690, y=750)
+        self.barcodeStatusLabel.place(x=784, y=750)
 
-        Label(StatusFrame, text='Scale', font=self.medium1_font, bg=Constants.white).place(x=765, y=740)
+        Label(StatusFrame, text='Scale', font=self.medium1_font, bg=Constants.white).place(x=855, y=740)
         self.ScaleStatusLabel = Label(StatusFrame, width=5, bg=Constants.red)
-        self.ScaleStatusLabel.place(x=855, y=750)
+        self.ScaleStatusLabel.place(x=935, y=750)
 
         # ################################# Info Frame ################################
         self.InfoLabel1 = Label(InfoFrame, text='Carton Weight', font=self.medium3_font, fg='#1A365D',
@@ -551,6 +557,7 @@ class RFIDUI:
         self.updateRFIDReaderStatus()
         self.updateAntennaStatus()
 
+        # Main software loop
         self.MainWindow.mainloop()
 
         self.processState = 'Exit'
@@ -560,7 +567,7 @@ class RFIDUI:
 
         restartScript = None
         try:
-            # Stop script is executed after closing the tkinter window is closed
+            # Restart script is executed after closing the tkinter window is closed
             restartScript = self.configFile['File']['RestartScript']
             self.logger.debug('Executing restartScript:%s', restartScript)
             os.system(restartScript)
@@ -572,7 +579,7 @@ class RFIDUI:
 
 # ############## End of NewUI ################################
 
-
+# Main program
 def main():
     if len(sys.argv) != 2:
         print('Usage: python ', sys.argv[0], ' <Configuration Filename>')

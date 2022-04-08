@@ -73,9 +73,8 @@ class Utility:
         except Exception as error:
             self.logger.error("Error in writing shipmentId to file:%s, error:%s",
                               self.shipmentIdFile, str(error))
+        self.logger.debug("Return shipmentId:%s", str(shipmentId))
 
-        self.logger.debug("Return shipmentId:%s",
-                          self.shipmentIdFile)
         return shipmentId
 
     # --------------------------------------------
@@ -127,7 +126,7 @@ class Utility:
     def getAntennaStatus(self):
 
         antennaStatus = {}
-        for antennaIndex in range(1, 5):  # Antenna range from 1 to 4
+        for antennaIndex in range(1, 7):  # Antenna range from 1 to 7
             try:  # if value is 3 then RFID antenna is connected
                 if get(self.rfidReaderHost, self.snmpCommunity, self.snmpOid + str(antennaIndex)) == 3:
                     antennaStatus[antennaIndex] = True
@@ -149,7 +148,7 @@ class Utility:
             return Constants.PERFORATED
         return Constants.NONPERFORATED
 
-    def decide_carton_type(self, product_details_in_carton, carton_type):
+    def decideCartonType(self, product_details_in_carton, carton_type):
         """
         This method will decide what type of carton it is based on the sizes
         of products found inside the carton
@@ -181,7 +180,7 @@ class Utility:
 
         raise UnknownCartonTypeError('This carton type is not identifiable')
 
-    def decodeEpcTagsIntoProductDetails(self, tagEpcCodeDict : dict):
+    def decodeEpcTagsIntoProductDetails(self, tagEpcCodeDict: dict):
         """
         This method is responsible for converting the EPC into product details via API request
         """
@@ -190,22 +189,21 @@ class Utility:
         decodedProductDetails = None
         try:
             decodedProductDetails = apiRequest.get_request_with_body(
-                { 'epc': tagEpcCodeDict }
+                {'epc': tagEpcCodeDict}
             )
             return decodedProductDetails
         except ApiError as err:
             self.logger.error(str(err))
             raise ApiError(str(err))
 
-
-    def getCartonPackType(self, productDetails, cartonCode : str):
+    def getCartonPackType(self, productDetails, cartonCode: str):
         """
         This method is responsible for getting the carton type based on the product details
         """
         self.logger.debug('Get Carton pack type using product detail and carton Code')
         cartonPerforation = self.getCartonPerforation(cartonCode)
         try:
-            cartonType = self.decide_carton_type(
+            cartonType = self.decideCartonType(
                 productDetails, cartonPerforation
             )
             return cartonType
@@ -260,6 +258,7 @@ class Utility:
 
                 # Remove any leading and trailing whitespaces
                 location = str(locationLine[0]).strip()
+                self.logger.debug('Loaded location detail:%s', location)
                 locationFile.close()
         except FileNotFoundError as error:
             self.logger.error(str(error))

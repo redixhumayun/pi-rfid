@@ -1,7 +1,11 @@
+# -----------------------------------------------------------
+# This class provides Barcode reading functionalities
+#
+# Date: 25-Mar-2022
+# -----------------------------------------------------------
 import configparser
 import logging
 import logging.config
-import re
 import Constants
 from Utility import Utility
 from exceptions import BarcodeError
@@ -42,24 +46,17 @@ class BarcodeScanner:
             try:
                 barcode = self.scanner.read()
                 if barcode:  # Check the barcode scanned value using Regular expression
-                    # if re.search("^HM[0-9]{4}", barcode):
-                    if True:
-                        self.logger.debug("Barcode scanned: %s ", barcode)
-                        try:
-                            cartonCode = self.utility.decodeBarcodeIntoCartonCode(barcode)
-                            self.logger.debug("Carton Code: %s ", cartonCode)
-                            return {'CC':cartonCode, 'BC':barcode}
-                        except ApiError as err:
-                            self.logger.error(str(err))
-                            raise BarcodeError(str(err))
-                    else:
-                        self.logger.error("Invalid Barcode: %s ", barcode)
-                        self.scanner.reset()
+                    self.logger.debug("Barcode scanned: %s ", barcode)
+                    try:
+                        cartonCode = self.utility.decodeBarcodeIntoCartonCode(barcode)
+                        self.logger.debug("Carton Code: %s ", cartonCode)
+                        return {'CC': cartonCode, 'BC': barcode}
+                    except ApiError as err:
+                        self.logger.error(str(err))
+                        raise BarcodeError(str(err))
             except PermissionError as err:
                 self.logger.error(Constants.permissionError + "%s "
                                                               ", Error:%s",
                                   self.configFile['Barcode']['BarcodeUSBPort'], str(err))
                 raise BarcodeError(Constants.permissionError +
                                    self.configFile['Barcode']['BarcodeUSBPort'] + ", Error:" + str(err))
-
-

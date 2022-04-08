@@ -119,7 +119,6 @@ class MakeApiRequest:
             self.logger.debug(f"Making a GET request with the following data: {data} attached to the body to the following endpoint: {self.url}")
             response = requests.request(method='get', url=self.url, data=data, headers=MakeApiRequest.headers)
             response.raise_for_status()
-            print(response.json())
             return response.json()
         except requests.exceptions.HTTPError as err:
             if err.response.status_code == 401:

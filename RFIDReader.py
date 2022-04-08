@@ -7,7 +7,7 @@ import configparser
 from twisted.internet import reactor
 import Constants
 from Utility import Utility
-from exceptions import RFIDError, ApiError, UnknownCartonTypeError
+from exceptions import RFIDError
 import sllurp.llrp as llrp
 import logging.config
 
