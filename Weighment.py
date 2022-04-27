@@ -29,6 +29,10 @@ class Weighment:
         # Initialize the class variables
         # Read WeighmentCount from config file
         self.weighmentCount = configFile.getint("Weighment", "WeighmentCount")
+
+        # Read Minimum weight from config file
+        self.minimumWeight = configFile.getfloat("Weighment", "MinimumWeight")
+
         self.weighmentSerial = None
         self.utility = Utility(self.configFile)
 
@@ -83,9 +87,9 @@ class Weighment:
                 for weight in serialOutputLine:
                     weight = weight.strip()
 
-                # if there is a value check it is zero or proper weight
+                # if there is a value then check it is greater than minimum weight
                 if weight:
-                    if float(weight) == 0.0:
+                    if float(weight) < self.minimumWeight:
                         zeroWeightCount = zeroWeightCount + 1
                     else:
                         correctWeightCount = correctWeightCount + 1

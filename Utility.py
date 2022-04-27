@@ -7,6 +7,7 @@ import configparser
 import logging
 import os
 import time
+
 import serial
 import socket
 from puresnmp import get
@@ -18,9 +19,6 @@ from exceptions import UnknownCartonTypeError, ApiError
 
 
 class Utility:
-
-    # Initialize the class global variables
-    rfidSessionId = 0
 
     # ---------------------------------
     # Utility class constructor
@@ -39,8 +37,23 @@ class Utility:
         self.shipmentIdFile = self.configFile["File"]["ShipmentIdFile"]
         self.location = self.configFile["File"]["Location"]
         self.weightmentPort = self.configFile["Weighment"]["SerialPort"]
-        self.barcodePort = self.configFile['Barcode']['BarcodeUSBPort']
         self.shipmentPrefix = self.configFile["Default"]["ShipmentPrefix"]
+
+        # Read barcode USB port from file
+        try:
+            with open(self.configFile['Barcode']['BarcodeUSBPortFile'], 'r', encoding='utf-8') as barcodeUSBFile:
+                barcodeValue = barcodeUSBFile.readlines()
+                self.barcodePort = str(barcodeValue[0]).strip()
+                barcodeUSBFile.close()
+        except Exception as error:
+            # In case of exception use UnixTimeStamp last 8 digit as shipmentId
+            self.logger.error("Error in reading barcode USB port from file:%s, error:%s",
+                              self.shipmentIdFile, str(error))
+            self.barcodePort = None
+
+    # Return the barcode USB Port
+    def getBarcodeUSBPort(self):
+        return self.barcodePort
 
     # -------------------------------------------------------------
     # Get shipmentID Reading it from shipmentid.txt file
@@ -109,7 +122,7 @@ class Utility:
 
         result = 1
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
+        sock.settimeout(0.1)
         result = sock.connect_ex(
             (self.rfidReaderHost, self.rfidReaderPort))
         sock.close()
@@ -118,6 +131,7 @@ class Utility:
             return True
         else:
             return False
+
 
     # ------------------------------------------------------------------
     # Get antenna status
@@ -136,12 +150,6 @@ class Utility:
                 antennaStatus[antennaIndex] = False
 
         return antennaStatus
-
-    # Get RFIDSessionId Value
-    @staticmethod
-    def getRFIDSessionId():
-        Utility.rfidSessionId = 0 if Utility.rfidSessionId == 1 else 1
-        return Utility.rfidSessionId
 
     def getCartonPerforation(self, cartonCode):
         if cartonCode[-1] == 'P':

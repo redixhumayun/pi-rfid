@@ -27,8 +27,8 @@ class BarcodeScanner:
 
         # Initialize the class variables
         self.logger = logging.getLogger(__name__)
-        self.scanner = Scanner(self.configFile['Barcode']['BarcodeUSBPort'])
         self.utility = Utility(self.configFile)
+        self.scanner = Scanner(self.utility.getBarcodeUSBPort())
 
     # Get the barcode
     # Return Dict with cartonCode and Barcode
@@ -37,9 +37,9 @@ class BarcodeScanner:
         self.logger.debug("Start barcode scanning process")
         if not self.utility.usbPortIsUsable():
             self.logger.error(Constants.usbPortOpenError + "%s",
-                              self.configFile['Barcode']['BarcodeUSBPort'])
+                              self.utility.getBarcodeUSBPort())
             raise BarcodeError(Constants.usbPortOpenError +
-                               self.configFile['Barcode']['BarcodeUSBPort'])
+                               self.utility.getBarcodeUSBPort())
 
         # Continue in the loop till barcode is scanned
         while True:
@@ -57,6 +57,6 @@ class BarcodeScanner:
             except PermissionError as err:
                 self.logger.error(Constants.permissionError + "%s "
                                                               ", Error:%s",
-                                  self.configFile['Barcode']['BarcodeUSBPort'], str(err))
+                                  self.utility.getBarcodeUSBPort(), str(err))
                 raise BarcodeError(Constants.permissionError +
-                                   self.configFile['Barcode']['BarcodeUSBPort'] + ", Error:" + str(err))
+                                   self.utility.getBarcodeUSBPort() + ", Error:" + str(err))

@@ -8,6 +8,7 @@ import logging.config
 import os.path
 import threading
 import time
+import tkinter
 from tkinter import *  # Tkinter used for UI
 from PIL import Image, ImageTk  # Display logo on the UI
 from tkinter.font import Font
@@ -104,9 +105,14 @@ class RFIDUI:
         self.startFirstProcess()  # Start from first step
 
     # This method will read RFID Tags and it is executed as thread
-    def readRFIDTags(self):
+    # sleepTimer is used to stop reading RFID tags during conveyor movement
+    def readRFIDTags(self,sleepTimer):
+
+        # Before reading tags Clear existing tag detail
+        self.rfidReader.clearTagDetail()
 
         try:
+            time.sleep(sleepTimer)
             self.rfidReader.startTagProcessing()
         except RFIDError as error:
             self.logger.error('Error in readRFIDTags:%s', str(error))
@@ -198,6 +204,7 @@ class RFIDUI:
 
         self.readBarcodeAndWeightThread = threading.Thread(target=self.readBarcodeAndWeight)
         self.readBarcodeAndWeightThread.start()
+        self.readBarcodeAndWeightThread.join(0)
 
     # ResetButtonCallback action
     def ResetButtonCallback(self):
@@ -294,6 +301,7 @@ class RFIDUI:
         self.StartStopRFIDButton.config(text="Upload", command=self.uploadCallback, state="normal")
         self.cartonTypeThread = threading.Thread(target=self.getCartonType())
         self.cartonTypeThread.start()
+        self.cartonTypeThread.join(0)
 
     # StopRFIDButtonCallback action updater
     def StopRFIDButtonCallback(self):
@@ -314,8 +322,19 @@ class RFIDUI:
 
         self.conveyorState = 2  # Move out of RFID chamber
 
-    # Move the conveyor
-    def moveConveyor(self, sleepTimer):
+    # Move the conveyor for sleepTimer interval
+    # When closeWindow is 1 don't consider state
+    def moveConveyor(self, sleepTimer, closeWindow=False):
+
+        # Capture the state of a button and when conveyor is moving disable buttons
+        # When Window is closed object don't exists
+        if not closeWindow:
+            resetButtonState = str(self.ResetButton['state'])
+            startStopRFIDButtonState = str(self.StartStopRFIDButton['state'])
+            reScanButtonState = str(self.ReScanButton['state'])
+            self.ResetButton.config(state='disabled')
+            self.StartStopRFIDButton.config(state='disabled')
+            self.ReScanButton.config(state='disabled')
 
         self.logger.debug('Moving conveyor for:%s seconds', sleepTimer)
         sleepTimer = int(sleepTimer)
@@ -323,6 +342,12 @@ class RFIDUI:
         GPIO.output(16, GPIO.HIGH)
         time.sleep(sleepTimer)
         GPIO.output(16, GPIO.LOW)
+
+        # Restore the button state
+        if not closeWindow:
+            self.ResetButton.config(state=resetButtonState)
+            self.StartStopRFIDButton.config(state=startStopRFIDButtonState)
+            self.ReScanButton.config(state=reScanButtonState)
 
     # StartRFIDButtonCallback action updater
     def StartRFIDButtonCallback(self):
@@ -340,11 +365,7 @@ class RFIDUI:
 
         self.StartStopRFIDButton.config(text="Stop RFID Scan", command=self.StopRFIDButtonCallback)
 
-        self.logger.debug("Start RFID Tag reading process")
-        self.processTagThread = threading.Thread(target=self.readRFIDTags)
-        self.processTagThread.start()
-        self.updateTagReadCount()
-
+        sleepTimer = 0
         #  From start to RFID chamber
         if self.conveyorState == 0:
             sleepTimer = self.configFile.getint("Default", "GPIO16InTimer")
@@ -353,6 +374,11 @@ class RFIDUI:
             self.moveConveyorThread.join(0)
 
         self.conveyorState = 1  # In the RFID chamber
+
+        self.logger.debug("Start RFID Tag reading process")
+        self.processTagThread = threading.Thread(target=self.readRFIDTags, args=(sleepTimer,))
+        self.processTagThread.start()
+        self.updateTagReadCount()
 
     # ####################### Device status info #####################
 
@@ -404,7 +430,13 @@ class RFIDUI:
 
         if self.processState == 'StartRFIDScan' or self.processState == 'Rescan':
             self.tagReadCount = self.rfidReader.getTagReadCount()
-            self.InfoLabel2.config(text=self.tagReadCount)
+
+            # try catch to avoid exception when window is closed
+            try:
+                self.InfoLabel2.config(text=self.tagReadCount)
+            except:
+                pass
+
             self.rfidCallBackId = self.InfoLabel2.after(Constants.RefreshRFIDCount, self.updateTagReadCount)
         else:
             # Don't refresh rfid count
@@ -564,6 +596,11 @@ class RFIDUI:
 
         # Close RFID connection
         self.rfidReader.closeConnection()
+
+        #  Make conveyor  movement when close main window is closed
+        if self.conveyorState == 1:
+            sleepTimer = self.configFile.getint("Default", "GPIO16OutTimer")
+            self.moveConveyor(sleepTimer, True)
 
         restartScript = None
         try:

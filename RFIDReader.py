@@ -4,6 +4,8 @@
 # Date: 26-Mar-2022
 # -----------------------------------------------------------
 import configparser
+import threading
+
 from twisted.internet import reactor
 import Constants
 from Utility import Utility
@@ -38,7 +40,7 @@ class RFIDReader:
                                                                                               'DisconnectWhenDone'),
                                               antennas=eval(self.configFile.get('RFIDParamerer', 'Antennas')),
                                               tari=self.configFile.getint('RFIDParamerer', 'Tari'),
-                                              session=Utility.getRFIDSessionId(),
+                                              session=self.configFile.getint('RFIDParamerer', 'Session'),
                                               tag_population=self.configFile.getint('RFIDParamerer', 'TagPopulation'),
                                               start_inventory=self.configFile.getboolean('RFIDParamerer',
                                                                                          'StartInventory'),
@@ -46,7 +48,7 @@ class RFIDReader:
                                               report_every_n_tags=self.configFile.getint('RFIDParamerer',
                                                                                          'ReportEveryNTags'),
                                               start_first=True,
-                                              duration=0.5,
+                                              duration=5,
                                               tag_content_selector={
                                                   'EnableROSpecID': self.configFile.getboolean('TagContentSelector',
                                                                                                'EnableROSpecID'),
@@ -73,10 +75,26 @@ class RFIDReader:
         self.factory.addTagReportCallback(self.tagReportCallback)
 
     # ----------------------------------------------------------------------
-    # This method to run each time the reader reports seeing tags.
+    # This method is executed as a thread to each time the reader reports tags.
+    # update tagEpcCodeDict (unique tag values) and tagReadCount
+    # input: tags : list
+    # ----------------------------------------------------------------------
+    def processTag(self, tags: list):
+
+        # The tag can be either in EPCData or EPC-96 filed
+        for tag in tags:
+            if "EPC-96" in tag:
+                tagValue = tag["EPC-96"].decode('UTF-8')
+
+                # if tag key not exists then add to tag Dictionary
+                if len(tagValue) == 24 and tagValue not in self.tagEpcCodeDict:
+                    self.tagEpcCodeDict[tagValue] = None
+                    self.tagReadCount = self.tagReadCount + 1
+                    print(self.tagReadCount)
+
+    # ----------------------------------------------------------------------
+    # This method to run each time the reader reports tags.
     # Tag report call back function
-    # process tag read event and update tagEpcCodeDict (unique tag values)
-    # and tagReadCount
     # input: llrpMsg : llrp.LLRPMessage
     # ----------------------------------------------------------------------
     def tagReportCallback(self, llrpMsg: llrp.LLRPMessage):
@@ -85,26 +103,11 @@ class RFIDReader:
         if not self.isInScanProcess:
             return
 
-        # Extract only required info from llrpMsg
         tags = llrpMsg.msgdict['RO_ACCESS_REPORT']['TagReportData']
-
-        # The tag can be either in EPCData or EPC-96 filed
-        for tag in tags:
-            result = None
-            if "EPCData" in tag:
-                result = tag["EPCData"]["EPC"]
-            elif "EPC-96" in tag:
-                result = tag["EPC-96"]
-
-            if result:
-                tagValue = str(result.decode('UTF-8')).upper()
-                # if tag key not exists then add to tag Dictionary
-                if tagValue not in self.tagEpcCodeDict:
-                    self.tagEpcCodeDict[tagValue] = None
-                    self.tagReadCount = self.tagReadCount + 1
-            else:
-                self.logger.error('Invalid RFID Data:%s', tag)
-
+        # Call processTag method as a thread
+        tagProcessingThread = threading.Thread(target=self.processTag, args=(tags,))
+        tagProcessingThread.start()
+        tagProcessingThread.join(0)
     # ----------------------------------------------------------------------------
     # Method to close RFID reader connection. 
     # This method is called from main application when RFID GUI window is closed
@@ -148,7 +151,7 @@ class RFIDReader:
         # Make it False when  tag reading process is stopped or main process is stopped
         self.isInScanProcess = False
         self.tagReadCount = 0
-        self.tagEpcCodeDict.clear()
+        self.tagEpcCodeDict = {}
 
     # Stop RFID tag reading process and return tag EPC Codes : Dictionary
     def stopTagProcessing(self):
@@ -158,7 +161,8 @@ class RFIDReader:
         # Make isInScanProcess False when  tag reading process is stopped
         self.isInScanProcess = False
 
-        # Converting dict into list where tag EPC code is used both as key and value
+        # Convert tag EPC code upper case and return list
+        self.tagEpcCodeDict = {k.upper():None for k,v in self.tagEpcCodeDict.items()}
         tagList = list(self.tagEpcCodeDict.keys())
         return tagList
 
@@ -172,9 +176,10 @@ class RFIDReader:
 
         # Make isInScanProcess true when tag reading process is started
         self.isInScanProcess = True
-        self.initFactory()
+
         if not self.iConnector:
             try:
+                self.initFactory()
                 self.connectTCP()
                 reactor.run(installSignalHandlers=False)
             except Exception as error:
